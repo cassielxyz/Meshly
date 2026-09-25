@@ -5,8 +5,8 @@
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Checkpoint generated after verified runtime/ops commit:** `5ae4c686c6becda098b7df3ace5d79c873e381b0`  
-**Latest milestone record:** `docs/checkpoints/2026-09-26-production-preflight-tooling-complete.md`
+**Checkpoint generated after verified runtime/CI commit:** `731473cb627d85c370f337285e98a33b1cccbef7`  
+**Latest milestone record:** `docs/checkpoints/2026-09-26-reproducible-security-gate-complete.md`
 
 ## Project goal
 
@@ -65,20 +65,29 @@ Meshly presents multiple connected Google Drive accounts as one Drive-like logic
 - Preflight verifies security headers, health, environment/database/migrations, Google OAuth redirect + PKCE S256, default Managed scopes (`drive.file` + `drive.appdata`), absence of accidental broad Drive scope, exact callback URL, cron auth protection and cross-origin mutation rejection.
 - `PRODUCTION_TESTING.md` credential-dependent test matrix and local evidence template.
 - `pnpm release:check` evidence gate for final production release readiness.
-- CI for checkpoint validation, lint, strict TypeScript, tests and optimized Next production build.
+- Committed `pnpm-lock.yaml` with frozen CI installs for deterministic dependency resolution.
+- Production dependency audit is part of both CI and `pnpm verify`.
+- `drizzle-orm` upgraded to `0.45.3` after the audit caught high-severity advisory `GHSA-gpj5-g38j-94v9` affecting versions below `0.45.2`.
+- GitHub Actions upgraded to current non-Node-20 releases: `actions/checkout@v7.0.1`, `pnpm/action-setup@v6.1.0`, and `actions/setup-node@v7.0.0`.
+- Dependabot monitors npm and GitHub Actions weekly.
+- CI for frozen install, checkpoint validation, production audit, lint, strict TypeScript, tests and optimized Next production build.
 - Production deployment guide in `DEPLOYMENT.md`.
 - Durable continuation/checkpoint protocol in `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `CONTINUE.md`, and `docs/checkpoints/`.
 
 ## Verification already completed
 
-The latest runtime/operations state at commit `5ae4c686c6becda098b7df3ace5d79c873e381b0` passed GitHub Actions run `36185897645` with:
+The latest runtime/CI state at commit `731473cb627d85c370f337285e98a33b1cccbef7` passed GitHub Actions run `36186865942` with:
 
+- modern GitHub Actions setup: **PASS**
+- frozen `pnpm-lock.yaml` installation: **PASS**
 - checkpoint validation: **PASS**
-- dependency installation: **PASS**
+- production dependency security audit: **PASS**
 - ESLint: **PASS**
 - strict TypeScript typecheck: **PASS**
 - Vitest unit tests: **PASS**
 - optimized Next.js production build: **PASS**
+
+The earlier production audit failure was intentionally resolved by upgrading `drizzle-orm` from the vulnerable 0.44.x line to patched stable `0.45.3`; the audit is green after the upgrade.
 
 Do not rerun or rebuild completed product features merely because a chat was lost. Newer repository commits always take precedence over this checkpoint.
 
@@ -104,7 +113,7 @@ Do not confuse these with missing code. The code and verification tooling exist,
 
 **Phase: credentials + deployment + real integration verification.**
 
-The product build, checkpoint system, production preflight harness and release evidence gate are complete. Do not restart them. First configure and test the existing production code. Only patch code when a real test, CI, security review, or UX smoke test reveals an issue.
+The product build, checkpoint system, production preflight harness, reproducible dependency gate, security audit gate and release evidence gate are complete. Do not restart them. First configure and test the existing production code. Only patch code when a real test, CI, security review, dependency advisory, or UX smoke test reveals an issue.
 
 ## Next actions — do these in order
 
