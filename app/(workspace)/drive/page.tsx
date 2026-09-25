@@ -1,3 +1,1 @@
-import { DriveView } from "@/components/workspace/drive-view";
-export const metadata = { title: "My Drive" };
-export default function DrivePage(){ return <DriveView />; }
+import{DriveView}from"@/components/workspace/drive-view";export default async function DrivePage({searchParams}:{searchParams:Promise<{search?:string}>}){const{search}=await searchParams;return <DriveView query={search?.slice(0,200)??""}/>;}
