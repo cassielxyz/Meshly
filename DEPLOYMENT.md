@@ -32,32 +32,56 @@ openssl rand -base64 48  # SHARE_GRANT_SECRET
 openssl rand -base64 48  # CRON_SECRET
 ```
 
-## 4. Preflight
+## 4. Automated preflight
 
-After deployment:
+After migrations and deployment, run:
 
-1. `GET /api/health` should return the service status.
-2. `GET /api/readiness` must return HTTP 200 before traffic is enabled.
-3. Sign in with one Google account.
-4. Upload and download a small file.
-5. Connect a second account and verify combined quota.
-6. Test a file large enough to exercise cross-account placement in a controlled test environment.
-7. Run Integrity and write a Recovery snapshot.
-8. Create, password-protect, download, and revoke a share link.
-9. Confirm the scheduled `/api/maintenance` invocation is authenticated with `CRON_SECRET`.
+```bash
+pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json
+```
 
-## 5. Production invariants
+This verifies the public landing page, security headers, `/api/health`, `/api/readiness`, production environment configuration, database reachability, required migrated schema, Google OAuth redirect/PKCE, cron authentication protection and the cross-origin API mutation guard.
 
-- Never log refresh tokens, resumable-upload session URLs, recovery secrets, share-grant secrets, or decrypted credentials.
+`GET /api/readiness` must return HTTP 200 with `environment`, `database`, and `migrations` all `true` before real-user testing begins.
+
+## 5. Credential-dependent integration tests
+
+Complete every required test in [PRODUCTION_TESTING.md](PRODUCTION_TESTING.md):
+
+1. Sign in with one real Google account.
+2. Connect a second account and verify combined real quota.
+3. Upload and download a small deterministic file and compare SHA-256.
+4. Force a controlled test file to span at least two Google accounts, reconstruct it, and compare whole-file SHA-256.
+5. Interrupt/resume or retry a large upload and verify that no incomplete logical file is exposed as ready.
+6. Run Integrity and a Recovery snapshot/restore rehearsal with test data.
+7. Verify public-share password, expiration/download cap and revocation controls.
+8. Confirm scheduled `/api/maintenance` succeeds with `CRON_SECRET` and remains 401 without it.
+9. Smoke-test the deployed desktop and mobile layouts.
+10. Test Full Drive sync only if that broader mode will be enabled and the OAuth deployment is eligible for it.
+
+Use `docs/integration-results.template.json` as the local evidence format. A filled evidence file belongs at `.meshly/integration-results.json` and is gitignored.
+
+When every required real integration test passes:
+
+```bash
+pnpm release:check
+pnpm verify
+```
+
+Only then update the checkpoint to `production_verified` and create the release/tag.
+
+## 6. Production invariants
+
+- Never log refresh tokens, resumable-upload session URLs, recovery secrets, share-grant secrets or decrypted credentials.
 - Do not delete/disconnect an account while managed chunks depend on it.
 - Do not publish a logical file until all physical parts have completed and verified.
 - Keep database backups even though signed recovery manifests can rebuild Meshly-managed metadata.
 - Rotate secrets after any suspected exposure.
 
-## 6. Verification command
+## 7. Code verification command
 
 ```bash
 pnpm verify
 ```
 
-This runs lint, strict TypeScript checking, unit tests, and the optimized production build. GitHub Actions runs the same gate on every push and pull request.
+This runs checkpoint validation, lint, strict TypeScript checking, unit tests, and the optimized production build. GitHub Actions runs the same gate on every push and pull request.
