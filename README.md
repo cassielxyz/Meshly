@@ -32,14 +32,14 @@ If a file safely fits in one healthy account, Meshly keeps it whole. If it does 
 
 ## Stack
 
-`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Radix/shadcn-style primitives · `Drizzle ORM` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
+`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Radix/shadcn-style primitives · `Drizzle ORM 0.45.x` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
 
 ## Quick start
 
 ```bash
 git clone https://github.com/cassielxyz/Meshly.git
 cd Meshly
-pnpm install
+pnpm install --frozen-lockfile
 cp .env.example .env.local
 pnpm db:migrate
 pnpm dev
@@ -81,19 +81,21 @@ Meshly intentionally feels familiar to Drive users without copying Google Drive'
 
 ## Verification
 
-Every push and pull request runs:
+Meshly uses a reproducible `pnpm-lock.yaml` and frozen dependency installation. Every push and pull request runs the hardened production gate:
 
 ```text
-install → lint → strict typecheck → unit tests → optimized production build
+frozen install → checkpoint validation → production dependency security audit → ESLint → strict typecheck → unit tests → optimized production build
 ```
 
-Locally the same gate is available as:
+Locally the matching gate is:
 
 ```bash
 pnpm verify
 ```
 
-Tests currently cover storage placement invariants, share-security primitives, and deployment-environment validation. Credential-dependent Google integration behavior is exercised after real OAuth/database credentials are configured.
+The production dependency audit rejects high-severity advisories. The current Drizzle ORM line is patched for the SQL-identifier injection advisory affecting versions below `0.45.2`. Dependabot monitors both npm dependencies and GitHub Actions for future updates.
+
+Tests cover storage placement invariants, share-security primitives, and deployment-environment validation. Credential-dependent Google integration behavior is exercised after real OAuth/database credentials are configured.
 
 ## Security
 
@@ -103,11 +105,38 @@ Read [SECURITY.md](SECURITY.md) before deployment. Refresh tokens are AES-256-GC
 
 `vercel.json` schedules `/api/maintenance` daily. The endpoint requires `Authorization: Bearer <CRON_SECRET>` and performs quota/account refresh, Full Drive change synchronization, and recovery-manifest maintenance.
 
-`GET /api/health` is a lightweight service endpoint. `GET /api/readiness` verifies required deployment configuration and database reachability and should be used as the pre-traffic readiness gate.
+`GET /api/health` is a lightweight service endpoint. `GET /api/readiness` verifies required production configuration, database connectivity, and required migrated schema and should be used as the pre-traffic readiness gate.
+
+After deployment run:
+
+```bash
+pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json
+```
+
+The preflight validates HTTPS/security headers, health/readiness, migrated schema, Google OAuth redirect + PKCE, Managed scopes, callback URL, cron protection and cross-origin mutation rejection.
+
+## Durable AI continuation
+
+Meshly carries its project state in the repository so a lost ChatGPT/agent session does not restart completed work. Future agents must read:
+
+- `AGENTS.md`
+- `CHECKPOINT.md`
+- `.meshly/project-state.json`
+- the newest record under `docs/checkpoints/`
+
+`pnpm checkpoint:check` validates the continuation state as part of CI.
 
 ## Before the first real-user test
 
-No code changes are required for basic production wiring. Add the production database + Google OAuth credentials + independent secrets, run migrations, deploy, confirm `/api/readiness`, and then execute the integration checklist in [DEPLOYMENT.md](DEPLOYMENT.md).
+The code build and deployment tooling are complete. The remaining launch sequence is:
+
+1. Provision the production PostgreSQL database with TLS.
+2. Add all environment variables from `.env.example`.
+3. Run `pnpm db:migrate` against production.
+4. Deploy `main` to Vercel/Node 22+.
+5. Run `pnpm production:preflight` and require every check to pass.
+6. Complete [PRODUCTION_TESTING.md](PRODUCTION_TESTING.md), including a forced two-account split/reconstruction SHA-256 test.
+7. Run `pnpm release:check` and `pnpm verify` before creating the production release.
 
 ## Contributing
 
