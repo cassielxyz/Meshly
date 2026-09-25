@@ -4,6 +4,6 @@ import { workspaceSections } from "@/lib/navigation";
 
 export default async function SectionPage({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
-  if (!workspaceSections.includes(section)) notFound();
+  if (!(workspaceSections as readonly string[]).includes(section)) notFound();
   return <SectionView section={section} />;
 }
