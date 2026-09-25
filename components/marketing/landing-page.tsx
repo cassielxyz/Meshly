@@ -18,6 +18,7 @@ import {
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import { useRef } from "react";
 import { MeshlyLogo } from "@/components/brand/meshly-logo";
+import { LivePlacementMap } from "@/components/marketing/live-placement-map";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -132,19 +133,8 @@ function ScrollStory() {
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const smooth = useSpring(scrollYProgress, { stiffness: 105, damping: 26, mass: 0.45 });
-  const fileX = useTransform(smooth, [0.16, 0.42, 0.72], [0, 120, 270]);
-  const fileY = useTransform(smooth, [0.16, 0.42, 0.72], [0, -28, 38]);
-  const partOne = useTransform(smooth, [0.34, 0.52], [0, 1]);
-  const partTwo = useTransform(smooth, [0.43, 0.61], [0, 1]);
-  const partThree = useTransform(smooth, [0.52, 0.7], [0, 1]);
-  const restored = useTransform(smooth, [0.7, 0.86], [0, 1]);
   const glowLeftY = useTransform(smooth, [0, 1], [60, -50]);
   const glowRightY = useTransform(smooth, [0, 1], [-50, 65]);
-  const storageNodes = [
-    { name: "Personal", size: "4.0 GB", color: "#4285F4", opacity: partOne },
-    { name: "Projects", size: "6.0 GB", color: "#34A853", opacity: partTwo },
-    { name: "Archive", size: "4.2 GB", color: "#FBBC04", opacity: partThree },
-  ];
 
   return (
     <section ref={ref} id="architecture" className="relative min-h-[170vh] bg-[#0f172a] text-white">
@@ -152,7 +142,7 @@ function ScrollStory() {
         <div className="deep-grid pointer-events-none absolute inset-0 opacity-60" />
         <motion.div style={reduceMotion ? undefined : { y: glowLeftY }} className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#4285F4]/20 blur-[90px]" />
         <motion.div style={reduceMotion ? undefined : { y: glowRightY }} className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-[#34A853]/15 blur-[90px]" />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[.88fr_1.12fr] lg:items-center">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[.86fr_1.14fr] lg:items-center">
           <div className="max-w-xl">
             <div className="text-xs font-semibold uppercase tracking-[.18em] text-[#8ab4f8]">One logical file · many storage nodes</div>
             <h2 className="mt-5 text-4xl font-semibold tracking-[-.055em] sm:text-5xl">The complexity moves underneath the interface.</h2>
@@ -166,37 +156,7 @@ function ScrollStory() {
             </div>
           </div>
 
-          <div className="relative mx-auto h-[430px] w-full max-w-[620px] rounded-[30px] border border-white/10 bg-white/[.045] p-5 shadow-[0_30px_100px_rgba(0,0,0,.25)] backdrop-blur-xl sm:p-7">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[.14em] text-white/45">Live placement map</div>
-                <div className="mt-1 text-sm font-semibold">camera-backup-2026.zip · 14.2 GB</div>
-              </div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-white/55">AUTO</div>
-            </div>
-            <div className="relative mt-10 h-[285px] overflow-hidden rounded-[24px] border border-white/8 bg-black/10">
-              <svg className="absolute inset-0 h-full w-full" viewBox="0 0 560 285" aria-hidden="true">
-                <path d="M105 142 C210 142 214 64 345 64" fill="none" stroke="rgba(138,180,248,.28)" strokeWidth="2" strokeDasharray="5 7" />
-                <path d="M105 142 C214 142 224 142 345 142" fill="none" stroke="rgba(129,201,149,.28)" strokeWidth="2" strokeDasharray="5 7" />
-                <path d="M105 142 C210 142 214 220 345 220" fill="none" stroke="rgba(253,214,99,.28)" strokeWidth="2" strokeDasharray="5 7" />
-              </svg>
-              <motion.div style={reduceMotion ? undefined : { x: fileX, y: fileY }} className="absolute left-7 top-[117px] z-10 flex items-center gap-2 rounded-xl border border-white/12 bg-white px-3 py-2 text-xs font-semibold text-[#1f2937] shadow-xl will-change-transform">
-                <FileArchive size={15} className="text-[#4285F4]" /> 14.2 GB
-              </motion.div>
-              <div className="absolute right-6 top-6 grid w-[190px] gap-3">
-                {storageNodes.map((node) => (
-                  <div key={node.name} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3">
-                    <motion.div style={{ opacity: reduceMotion ? 1 : node.opacity }} className="absolute inset-y-0 left-0 w-1" aria-hidden="true"><div className="h-full w-full" style={{ backgroundColor: node.color }} /></motion.div>
-                    <div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold">{node.name}</span><span className="text-[11px] text-white/48">{node.size}</span></div>
-                  </div>
-                ))}
-              </div>
-              <motion.div style={{ opacity: reduceMotion ? 1 : restored }} className="absolute bottom-5 left-6 right-6 flex items-center justify-between rounded-2xl border border-[#81c995]/20 bg-[#81c995]/10 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#b7e1c1]"><FileCheck2 size={16} /> Whole-file SHA-256 verified</div>
-                <span className="text-[11px] text-white/45">1 logical file</span>
-              </motion.div>
-            </div>
-          </div>
+          <LivePlacementMap />
         </div>
       </div>
     </section>
@@ -232,7 +192,7 @@ export function LandingPage() {
         <motion.div animate={reduceMotion ? undefined : { y: [0, 12, 0], x: [0, -5, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute right-[9%] top-20 h-48 w-48 rounded-full bg-[#34A853]/10 blur-3xl" />
         <div className="relative mx-auto max-w-7xl text-center">
           <motion.div initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#dbe4ef] bg-white/78 px-4 py-2 text-xs font-semibold shadow-sm backdrop-blur-xl"><span className="h-2 w-2 rounded-full bg-[var(--green)]" />Unified Google Drive storage</motion.div>
-          <motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.72, ease: EASE }} className="mx-auto mt-7 max-w-5xl text-5xl font-semibold tracking-[-.065em] sm:text-7xl">All your storage.<br /><span className="text-[var(--blue)]">One Meshly workspace.</span></motion.h1>
+          <motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.72, ease: EASE }} className="mx-auto mt-7 max-w-5xl text-5xl font-semibold leading-[.98] tracking-[-.065em] sm:text-7xl">All your storage.<br /><span className="meshly-editorial-gradient mt-1 text-[1.04em] sm:mt-2 sm:text-[1.02em]">One Meshly workspace.</span></motion.h1>
           <motion.p initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.7, ease: EASE }} className="mx-auto mt-7 max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">Connect multiple Google accounts, pool their available storage, and manage every file through a single Drive-like interface.</motion.p>
           <motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.66, ease: EASE }} className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/onboarding" className="focus-ring inline-flex items-center gap-2 rounded-full bg-[var(--blue)] px-6 py-3 font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5">Create your workspace <ArrowRight size={18} /></Link>
