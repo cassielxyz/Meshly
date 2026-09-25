@@ -2,14 +2,92 @@ export type DriveAbout = {
   user?: { displayName?: string; emailAddress?: string; photoLink?: string };
   storageQuota?: { limit?: string; usage?: string; usageInDrive?: string; usageInDriveTrash?: string };
 };
+export type DriveIndexedFile = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  sha256Checksum?: string;
+  parents?: string[];
+  createdTime?: string;
+  modifiedTime?: string;
+  webViewLink?: string;
+  trashed?: boolean;
+  appProperties?: Record<string, string>;
+};
+export type DriveChange = { fileId: string; removed?: boolean; file?: DriveIndexedFile };
 
 const auth = (accessToken: string) => ({ authorization: `Bearer ${accessToken}` });
+const INDEX_FIELDS = "id,name,mimeType,size,sha256Checksum,parents,createdTime,modifiedTime,webViewLink,trashed,appProperties";
 
 export async function getDriveAbout(accessToken: string) {
   const fields = "user(displayName,emailAddress,photoLink),storageQuota(limit,usage,usageInDrive,usageInDriveTrash)";
   const response = await fetch(`https://www.googleapis.com/drive/v3/about?fields=${encodeURIComponent(fields)}`, { headers: auth(accessToken), cache: "no-store" });
   if (!response.ok) throw new Error(`Drive quota request failed (${response.status})`);
   return response.json() as Promise<DriveAbout>;
+}
+
+export async function getDriveRootId(accessToken: string) {
+  const response = await fetch("https://www.googleapis.com/drive/v3/files/root?fields=id&supportsAllDrives=true", { headers: auth(accessToken), cache: "no-store" });
+  if (!response.ok) throw new Error(`Unable to resolve Drive root (${response.status})`);
+  return ((await response.json()) as { id: string }).id;
+}
+
+export async function listAllDriveFiles(accessToken: string) {
+  const files: DriveIndexedFile[] = [];
+  let pageToken: string | undefined;
+  for (let page = 0; page < 500; page++) {
+    const params = new URLSearchParams({
+      q: "trashed=false",
+      spaces: "drive",
+      corpora: "user",
+      pageSize: "1000",
+      orderBy: "folder,name",
+      fields: `nextPageToken,files(${INDEX_FIELDS})`,
+      includeItemsFromAllDrives: "true",
+      supportsAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, { headers: auth(accessToken), cache: "no-store" });
+    if (!response.ok) throw new Error(`Drive index listing failed (${response.status})`);
+    const data = (await response.json()) as { nextPageToken?: string; files?: DriveIndexedFile[] };
+    files.push(...(data.files ?? []));
+    pageToken = data.nextPageToken;
+    if (!pageToken) return files;
+  }
+  throw new Error("Drive index exceeded the safety page limit");
+}
+
+export async function getDriveStartPageToken(accessToken: string) {
+  const response = await fetch("https://www.googleapis.com/drive/v3/changes/startPageToken?spaces=drive&supportsAllDrives=true", { headers: auth(accessToken), cache: "no-store" });
+  if (!response.ok) throw new Error(`Unable to create Drive change cursor (${response.status})`);
+  return ((await response.json()) as { startPageToken: string }).startPageToken;
+}
+
+export async function listDriveChanges(accessToken: string, startPageToken: string) {
+  const changes: DriveChange[] = [];
+  let pageToken = startPageToken;
+  let newStartPageToken: string | undefined;
+  for (let page = 0; page < 500; page++) {
+    const params = new URLSearchParams({
+      pageToken,
+      spaces: "drive",
+      pageSize: "1000",
+      includeRemoved: "true",
+      includeItemsFromAllDrives: "true",
+      supportsAllDrives: "true",
+      fields: `nextPageToken,newStartPageToken,changes(fileId,removed,file(${INDEX_FIELDS}))`,
+    });
+    const response = await fetch(`https://www.googleapis.com/drive/v3/changes?${params.toString()}`, { headers: auth(accessToken), cache: "no-store" });
+    if (response.status === 410) return { expired: true as const, changes: [], newStartPageToken: null };
+    if (!response.ok) throw new Error(`Drive change sync failed (${response.status})`);
+    const data = (await response.json()) as { nextPageToken?: string; newStartPageToken?: string; changes?: DriveChange[] };
+    changes.push(...(data.changes ?? []));
+    if (data.newStartPageToken) newStartPageToken = data.newStartPageToken;
+    if (!data.nextPageToken) return { expired: false as const, changes, newStartPageToken: newStartPageToken ?? pageToken };
+    pageToken = data.nextPageToken;
+  }
+  throw new Error("Drive change feed exceeded the safety page limit");
 }
 
 export async function ensureMeshlyFolder(accessToken: string) {
@@ -45,9 +123,9 @@ export async function createResumableSession(accessToken: string, input: { name:
 }
 
 export async function getDriveFileMetadata(accessToken: string, fileId: string) {
-  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,size,md5Checksum,sha256Checksum,trashed`, { headers: auth(accessToken), cache: "no-store" });
+  const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,size,md5Checksum,sha256Checksum,trashed,appProperties`, { headers: auth(accessToken), cache: "no-store" });
   if (!response.ok) throw new Error(`Unable to verify Drive file (${response.status})`);
-  return response.json() as Promise<{ id: string; name: string; size?: string; md5Checksum?: string; sha256Checksum?: string; trashed?: boolean }>;
+  return response.json() as Promise<{ id: string; name: string; size?: string; md5Checksum?: string; sha256Checksum?: string; trashed?: boolean; appProperties?: Record<string, string> }>;
 }
 
 export async function downloadDriveFile(accessToken: string, fileId: string, range?: string) {
@@ -55,6 +133,10 @@ export async function downloadDriveFile(accessToken: string, fileId: string, ran
     headers: { ...auth(accessToken), ...(range ? { range } : {}) },
     cache: "no-store",
   });
+}
+
+export async function exportDriveFile(accessToken: string, fileId: string, mimeType: string) {
+  return fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/export?mimeType=${encodeURIComponent(mimeType)}`, { headers: auth(accessToken), cache: "no-store" });
 }
 
 export async function deleteDriveFile(accessToken: string, fileId: string) {
