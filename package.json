@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "db:migrate": "node scripts/migrate.mjs",
     "checkpoint:check": "node scripts/checkpoint-check.mjs",
+    "production:preflight": "node scripts/production-preflight.mjs",
     "verify": "pnpm checkpoint:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
