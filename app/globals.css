@@ -27,13 +27,15 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body {
   margin: 0;
+  overflow-x: clip;
   color: var(--foreground);
   background: var(--background);
   font-family: Inter, Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -45,6 +47,14 @@ button:disabled { cursor: default; }
   background: color-mix(in srgb, var(--background) 92%, var(--surface));
   border-radius: var(--radius);
   box-shadow: 0 1px 2px rgba(60,64,67,.08);
+}
+
+.product-window {
+  border: 1px solid #dde3ea;
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(60,64,67,.13), 0 2px 8px rgba(60,64,67,.06);
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .btn {
@@ -91,4 +101,38 @@ button:disabled { cursor: default; }
     radial-gradient(circle at 75% 18%, rgba(52,168,83,.12), transparent 32%),
     radial-gradient(circle at 70% 78%, rgba(251,188,4,.12), transparent 30%),
     radial-gradient(circle at 24% 82%, rgba(234,67,53,.09), transparent 28%);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(32,33,36,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32,33,36,.035) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 78%);
+}
+
+.deep-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 62% 50%, black, transparent 76%);
+}
+
+.demo-grid {
+  background:
+    linear-gradient(rgba(60,64,67,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60,64,67,.025) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(66,133,244,.08), transparent 42%);
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
 }
