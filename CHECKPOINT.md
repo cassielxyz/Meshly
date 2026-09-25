@@ -5,14 +5,14 @@
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime/UI commit:** `5fd8a25c01e498ed09aff5f84ba8b0745d5b5404`  
-**Latest milestone record:** `docs/checkpoints/2026-09-26-editorial-hero-placement-map-polish-complete.md`
+**Latest verified runtime/UI commit:** `53c251f72912ca8fc24f93501dd23cfbf44fa9df`  
+**Latest milestone record:** `docs/checkpoints/2026-09-26-scroll-scrubbed-placement-split-complete.md`
 
 ## Current project state
 
 Meshly is production-code complete and is now in the **credentials + deployment + real integration verification** phase.
 
-Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, interactive demo, landing-motion redesign, editorial hero treatment, or Live Placement Map animation. Newer repository commits always take precedence over this checkpoint.
+Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, interactive demo, landing-motion redesign, editorial hero treatment, or the Live Placement Map. Newer repository commits always take precedence over this checkpoint.
 
 ## Completed in code
 
@@ -28,10 +28,20 @@ Do **not** restart the product build, storage engine, security hardening, produc
 - Demo includes auto-play, pause/play, direct step selection, back/next controls and onboarding CTA.
 - Landing demo links point to `/demo` instead of the authenticated `/drive` route.
 - Landing visual cleanup removed emoji/generic mock artifacts and replaced them with consistent product icons/surfaces.
-- Landing motion includes scroll progress, staged reveals, restrained hover motion and a pinned scroll-driven storage-placement story.
+- Landing motion includes scroll progress, staged reveals, restrained hover motion and a pinned storage-placement story.
 - Motion is transform/opacity-first with `prefers-reduced-motion` fallbacks.
 - Hero subtitle `One Meshly workspace.` uses Bodoni Moda italic editorial typography with a soft pink → lavender gradient, tuned tracking/line-height and restrained glow.
-- Live Placement Map is a dedicated component with aligned header text, balanced AUTO control, equal destination-card geometry, animated path reveals, continuously flowing dash motion, moving colored split particles, endpoint glows and reduced-motion fallback.
+- Live Placement Map has aligned header text, balanced control placement and equal destination-card geometry.
+- The placement story is now **true scroll-scrubbed motion**, not viewport-triggered autoplay or a time loop.
+- Scroll progress is derived from the actual `#architecture` section travel distance.
+- The 14.2 GB source file stays whole first, then a trunk path draws to a split node.
+- Three branches draw progressively as the user scrolls.
+- Explicit `4.0 GB`, `6.0 GB`, and `4.2 GB` range chips split from the source and travel into Personal, Projects and Archive respectively.
+- Destination cards react as each range arrives.
+- The final `3 ranges placed · SHA-256 verified` state appears only near the end of the scroll sequence.
+- Scrolling backward reverses the entire split sequence naturally.
+- The old continuously looping placement particles were removed from this story.
+- Reduced-motion users see a stable completed placement state without scrubbed animation.
 
 ### Storage engine
 
@@ -84,7 +94,7 @@ Do **not** restart the product build, storage engine, security hardening, produc
 
 ## Verification already completed
 
-GitHub Actions run `36195010419` for commit `5fd8a25c01e498ed09aff5f84ba8b0745d5b5404` passed:
+GitHub Actions run `36197309247` for runtime/UI commit `53c251f72912ca8fc24f93501dd23cfbf44fa9df` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -94,7 +104,7 @@ GitHub Actions run `36195010419` for commit `5fd8a25c01e498ed09aff5f84ba8b0745d5
 - Vitest: **PASS**
 - optimized Next.js production build: **PASS**
 
-This verified state includes the Bodoni editorial hero treatment and rebuilt animated Live Placement Map.
+This verified state includes the Bodoni editorial hero treatment and the new reversible, real-scroll-scrubbed Live Placement Map split animation.
 
 ## NOT yet proven with real production credentials
 
@@ -112,7 +122,7 @@ These are integration/deployment tasks, not missing product code:
 - Recovery snapshot and restore rehearsal.
 - Deployed share password/expiry/download-limit/revocation flow.
 - Vercel cron with real `CRON_SECRET`.
-- Desktop/mobile deployed UX smoke test, including `/`, `/demo`, editorial hero, placement-map animation, reduced-motion mode and scroll smoothness.
+- Desktop/mobile deployed UX smoke test, including `/`, `/demo`, editorial hero, true scroll-scrubbed placement animation, reduced-motion mode and scroll smoothness.
 
 ## Next actions — do these in order
 
@@ -125,7 +135,7 @@ These are integration/deployment tasks, not missing product code:
 7. Force one test file to span at least two Google accounts, download it and compare whole-file SHA-256.
 8. Run Integrity and Recovery rehearsals.
 9. Verify public sharing and scheduled maintenance.
-10. Smoke-test desktop and mobile, including landing/demo animations, editorial typography, Live Placement Map flow and reduced-motion behavior.
+10. Smoke-test desktop and mobile, including landing/demo animations, editorial typography, scroll-controlled split timing and reduced-motion behavior.
 11. Run `pnpm release:check` and `pnpm verify`.
 12. Fix only failures found by real testing, rerunning the relevant test and full gate after each fix.
 13. When all required credential-dependent tests pass, update this checkpoint to **production verified** and create the release/tag.
