@@ -3,9 +3,13 @@ import process from "node:process";
 
 function parseArgs(argv) {
   const result = { origin: process.env.MESHLY_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "", report: process.env.MESHLY_PREFLIGHT_REPORT || "" };
+  let positionalOriginSeen = false;
   for (const arg of argv.slice(2)) {
     if (arg.startsWith("--report=")) result.report = arg.slice("--report=".length);
-    else if (!arg.startsWith("--") && !result.origin) result.origin = arg;
+    else if (!arg.startsWith("--") && !positionalOriginSeen) {
+      result.origin = arg;
+      positionalOriginSeen = true;
+    }
   }
   return result;
 }
@@ -94,7 +98,18 @@ await check("google_oauth_start", async () => {
   const target = new URL(location, origin);
   expect(target.hostname === "accounts.google.com", `OAuth is not configured; redirected to ${target.href}`);
   expect(target.searchParams.get("code_challenge_method") === "S256", "OAuth PKCE S256 challenge is missing");
-  return { provider: target.hostname, pkce: true };
+
+  const scopes = new Set((target.searchParams.get("scope") || "").split(/\s+/).filter(Boolean));
+  const managedDriveScope = "https://www.googleapis.com/auth/drive.file";
+  const appDataScope = "https://www.googleapis.com/auth/drive.appdata";
+  const fullDriveScope = "https://www.googleapis.com/auth/drive";
+  expect(scopes.has(managedDriveScope), "default OAuth flow is missing drive.file managed scope");
+  expect(scopes.has(appDataScope), "default OAuth flow is missing drive.appdata recovery scope");
+  expect(!scopes.has(fullDriveScope), "default OAuth flow unexpectedly requests full Drive scope");
+
+  const expectedCallback = new URL("/api/auth/google/callback", origin).toString();
+  expect(target.searchParams.get("redirect_uri") === expectedCallback, `OAuth redirect_uri does not match deployed origin; expected ${expectedCallback}`);
+  return { provider: target.hostname, pkce: true, managedScope: true, appDataScope: true, redirectUri: expectedCallback };
 });
 
 await check("maintenance_requires_secret", async () => {
