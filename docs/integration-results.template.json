@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "project": "Meshly",
+  "environment": "production-candidate",
+  "testedAt": "YYYY-MM-DDTHH:mm:ssZ",
+  "commit": "REPLACE_WITH_TESTED_COMMIT_SHA",
+  "automatedPreflight": {
+    "status": "pending",
+    "report": ".meshly/preflight-report.json"
+  },
+  "tests": [
+    { "id": "oauth_login", "required": true, "status": "pending", "notes": "" },
+    { "id": "second_account", "required": true, "status": "pending", "notes": "" },
+    { "id": "small_round_trip", "required": true, "status": "pending", "notes": "" },
+    { "id": "cross_account_round_trip", "required": true, "status": "pending", "notes": "Record only non-sensitive test size/hash evidence." },
+    { "id": "resumable_resume", "required": true, "status": "pending", "notes": "" },
+    { "id": "integrity_scan", "required": true, "status": "pending", "notes": "" },
+    { "id": "recovery_rehearsal", "required": true, "status": "pending", "notes": "" },
+    { "id": "share_controls", "required": true, "status": "pending", "notes": "" },
+    { "id": "maintenance_cron", "required": true, "status": "pending", "notes": "" },
+    { "id": "desktop_smoke", "required": true, "status": "pending", "notes": "" },
+    { "id": "mobile_smoke", "required": true, "status": "pending", "notes": "" },
+    { "id": "full_drive_sync", "required": false, "status": "gated", "notes": "Required only if Full Drive mode will be publicly enabled." }
+  ]
+}
