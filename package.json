@@ -15,7 +15,7 @@
     "checkpoint:check": "node scripts/checkpoint-check.mjs",
     "production:preflight": "node scripts/production-preflight.mjs",
     "release:check": "node scripts/release-readiness.mjs",
-    "verify": "pnpm checkpoint:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm checkpoint:check && pnpm audit --prod --audit-level high && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
