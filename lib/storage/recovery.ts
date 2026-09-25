@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getDb } from "@/db/client";
@@ -10,11 +10,7 @@ import { decryptSecret } from "@/lib/security/crypto";
 
 const RECOVERY_FILE = "meshly-recovery-v2.json";
 
-const accountSchema = z.object({
-  id: z.string().min(1),
-  email: z.string().email(),
-  googleSubject: z.string().min(1),
-});
+const accountSchema = z.object({ id: z.string().min(1), email: z.string().email(), googleSubject: z.string().min(1) });
 const fileSchema = z.object({
   id: z.string().min(1),
   parentId: z.string().nullable(),
@@ -71,19 +67,20 @@ function parseRecoveryDocument(content: string) {
 
 export async function buildRecoveryDocument(userId: string) {
   const db = getDb();
-  const [accounts, files, parts] = await Promise.all([
+  const [accounts, managedFiles, parts] = await Promise.all([
     db.select({ id: linkedAccounts.id, email: linkedAccounts.email, googleSubject: linkedAccounts.googleSubject }).from(linkedAccounts).where(eq(linkedAccounts.userId, userId)),
-    db.select().from(logicalFiles).where(eq(logicalFiles.userId, userId)),
-    db.select({ chunk: chunks }).from(chunks).innerJoin(logicalFiles, eq(chunks.fileId, logicalFiles.id)).where(eq(logicalFiles.userId, userId)),
+    db.select().from(logicalFiles).where(and(eq(logicalFiles.userId, userId), eq(logicalFiles.sourceKind, "managed"))),
+    db.select({ chunk: chunks }).from(chunks).innerJoin(logicalFiles, eq(chunks.fileId, logicalFiles.id)).where(and(eq(logicalFiles.userId, userId), eq(logicalFiles.sourceKind, "managed"))),
   ]);
+  const managedIds = new Set(managedFiles.map((file) => file.id));
   const payload: RecoveryPayload = {
     version: 2,
     generatedAt: new Date().toISOString(),
     sourceUserId: userId,
     accounts,
-    files: files.map((file) => ({
+    files: managedFiles.map((file) => ({
       id: file.id,
-      parentId: file.parentId,
+      parentId: file.parentId && managedIds.has(file.parentId) ? file.parentId : null,
       name: file.name,
       mimeType: file.mimeType,
       size: file.size,
@@ -93,7 +90,7 @@ export async function buildRecoveryDocument(userId: string) {
       description: file.description,
       version: file.version,
       trashedAt: file.trashedAt?.toISOString() ?? null,
-      trashedParentId: file.trashedParentId,
+      trashedParentId: file.trashedParentId && managedIds.has(file.trashedParentId) ? file.trashedParentId : null,
       createdAt: file.createdAt.toISOString(),
       updatedAt: file.updatedAt.toISOString(),
     })),
@@ -190,12 +187,13 @@ export async function restoreRecoverySnapshot(userId: string) {
         version: file.version ?? 1,
         trashedAt: file.trashedAt ? new Date(file.trashedAt) : null,
         trashedParentId: file.trashedParentId,
+        sourceKind: "managed",
         createdAt: new Date(file.createdAt),
         updatedAt: new Date(file.updatedAt),
       };
       await tx.insert(logicalFiles).values(values).onConflictDoUpdate({
         target: logicalFiles.id,
-        set: { userId, parentId: values.parentId, name: values.name, mimeType: values.mimeType, size: values.size, sha256: values.sha256, status: values.status, starred: values.starred, description: values.description, version: values.version, trashedAt: values.trashedAt, trashedParentId: values.trashedParentId, updatedAt: values.updatedAt },
+        set: { userId, parentId: values.parentId, name: values.name, mimeType: values.mimeType, size: values.size, sha256: values.sha256, status: values.status, starred: values.starred, description: values.description, version: values.version, trashedAt: values.trashedAt, trashedParentId: values.trashedParentId, sourceKind: "managed", sourceAccountId: null, sourceDriveFileId: null, sourceMimeType: null, sourceWebViewLink: null, updatedAt: values.updatedAt },
       });
     }
     for (const chunk of selected.payload.chunks) {
