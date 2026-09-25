@@ -65,7 +65,9 @@ export function SectionView({ section }: { section: Section }) {
   }, [endpoint]);
 
   useEffect(() => {
-    if (endpoint) void load();
+    if (!endpoint) return;
+    const initial = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(initial);
   }, [endpoint, load]);
 
   async function refreshAccounts() {
@@ -74,12 +76,16 @@ export function SectionView({ section }: { section: Section }) {
     setMessage(response.ok ? "Storage quotas refreshed." : "Some accounts could not be refreshed.");
     await load();
   }
+  async function syncAccount(id: string) {
+    setMessage("Syncing existing Google Drive files…");
+    const response = await fetch(`/api/accounts/${id}/sync`, { method: "POST" });
+    const result = (await response.json().catch(() => ({}))) as { indexed?: number; changed?: number; error?: string };
+    setMessage(response.ok ? `Drive sync complete: ${result.indexed ?? result.changed ?? 0} item(s) processed.` : result.error ?? "Drive sync failed.");
+    if (response.ok) window.dispatchEvent(new Event("meshly:refresh"));
+    await load();
+  }
   async function accountPatch(id: string, enabled: boolean) {
-    await fetch(`/api/accounts/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ uploadsEnabled: enabled }),
-    });
+    await fetch(`/api/accounts/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ uploadsEnabled: enabled }) });
     await load();
   }
   async function disconnect(id: string) {
@@ -111,6 +117,7 @@ export function SectionView({ section }: { section: Section }) {
     const response = await fetch("/api/recovery/restore", { method: "POST" });
     const result = (await response.json().catch(() => ({}))) as { restoredFiles?: number; restoredChunks?: number; error?: string };
     setMessage(response.ok ? `Restored ${result.restoredFiles ?? 0} items and ${result.restoredChunks ?? 0} chunk records.` : result.error ?? "Restore failed.");
+    if (response.ok) window.dispatchEvent(new Event("meshly:refresh"));
     await load();
   }
   async function revoke(id: string) {
@@ -118,8 +125,8 @@ export function SectionView({ section }: { section: Section }) {
     await load();
   }
 
-  if (section === "help") return <StaticPage title="Help center"><p>Meshly combines Google storage accounts behind one logical filesystem. Use <b>New</b> to create folders, upload files or folders, or connect another account. Large files are split only when needed, verified, and reconstructed automatically on download.</p><p>If an account becomes unavailable, open <Link className="text-[var(--blue)]" href="/accounts">Accounts</Link>. For file health, run <Link className="text-[var(--blue)]" href="/integrity">Integrity</Link>. For disaster recovery, use <Link className="text-[var(--blue)]" href="/recovery">Recovery</Link>.</p></StaticPage>;
-  if (section === "privacy") return <StaticPage title="Privacy"><p>Meshly stores logical file metadata and encrypted Google refresh tokens in its database. File bytes upload directly to Google Drive resumable sessions and are not intentionally buffered on the Meshly application server.</p><p>Recovery manifests contain filesystem and chunk metadata but never refresh tokens. Disconnecting an account is blocked while Meshly files still depend on it.</p></StaticPage>;
+  if (section === "help") return <StaticPage title="Help center"><p>Meshly combines Google storage accounts behind one logical filesystem. Use <b>New</b> to create folders, upload files or folders, or connect another account. Large files are split only when needed, verified, and reconstructed automatically on download.</p><p>Managed mode handles Meshly-created content with the narrower Drive permission. Full Drive mode can additionally index pre-existing content after the deployment completes Google&apos;s broader-scope verification requirements.</p><p>If an account becomes unavailable, open <Link className="text-[var(--blue)]" href="/accounts">Accounts</Link>. For file health, run <Link className="text-[var(--blue)]" href="/integrity">Integrity</Link>. For disaster recovery, use <Link className="text-[var(--blue)]" href="/recovery">Recovery</Link>.</p></StaticPage>;
+  if (section === "privacy") return <StaticPage title="Privacy"><p>Meshly stores logical file metadata and encrypted Google refresh tokens in its database. File bytes upload directly to Google Drive resumable sessions and are not intentionally buffered on the Meshly application server.</p><p>Recovery manifests contain only Meshly-managed filesystem and chunk metadata, never refresh tokens. Full Drive index entries are rebuilt from Google rather than duplicated into recovery manifests.</p></StaticPage>;
   if (loading) return <Page title={section}>Loading…</Page>;
 
   if (section === "storage" && data) {
@@ -134,8 +141,8 @@ export function SectionView({ section }: { section: Section }) {
 
   if (section === "accounts" && data) {
     const storage = data as Storage;
-    return <Page title="Connected accounts" action={<div className="flex gap-2"><button onClick={() => void refreshAccounts()} className="btn"><RefreshCw size={16}/>Refresh</button><a href="/api/auth/google/start?link=1" className="btn"><CloudCog size={16}/>Connect Google</a></div>} message={message}>
-      <div className="space-y-3">{storage.accounts.map((account) => <div className="mesh-card flex flex-wrap items-center gap-4 p-4" key={account.id}><div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--blue-soft)] font-semibold">{account.email[0]?.toUpperCase()}</div><div className="min-w-0 flex-1"><div className="truncate font-medium">{account.email}</div><div className="text-xs text-[var(--muted)]">{account.mode} · {account.status} · {fmt(account.quotaUsage)} / {fmt(account.quotaLimit)}</div></div><button className="btn" onClick={() => void accountPatch(account.id, account.status === "paused")}>{account.status === "paused" ? "Enable uploads" : "Pause uploads"}</button><button className="btn text-[var(--red)]" onClick={() => void disconnect(account.id)}><Trash2 size={15}/>Disconnect</button></div>)}</div>
+    return <Page title="Connected accounts" action={<div className="flex gap-2"><button onClick={() => void refreshAccounts()} className="btn"><RefreshCw size={16}/>Refresh</button><a href="/api/auth/google/start" className="btn"><CloudCog size={16}/>Connect Google</a></div>} message={message}>
+      <div className="space-y-3">{storage.accounts.map((account) => <div className="mesh-card flex flex-wrap items-center gap-4 p-4" key={account.id}><div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--blue-soft)] font-semibold">{account.email[0]?.toUpperCase()}</div><div className="min-w-0 flex-1"><div className="truncate font-medium">{account.email}</div><div className="text-xs text-[var(--muted)]">{account.mode} · {account.status} · {fmt(account.quotaUsage)} / {fmt(account.quotaLimit)}</div></div>{account.mode === "full" ? <button className="btn" onClick={() => void syncAccount(account.id)}><RefreshCw size={15}/>Sync Drive</button> : <a className="btn" href="/api/auth/google/start?mode=full"><CloudCog size={15}/>Enable Full mode</a>}<button className="btn" onClick={() => void accountPatch(account.id, account.status === "paused")}>{account.status === "paused" ? "Enable uploads" : "Pause uploads"}</button><button className="btn text-[var(--red)]" onClick={() => void disconnect(account.id)}><Trash2 size={15}/>Disconnect</button></div>)}</div>
     </Page>;
   }
 
@@ -147,7 +154,7 @@ export function SectionView({ section }: { section: Section }) {
   if ((section === "activity" || section === "transfers" || section === "notifications") && data) {
     let rows = (data as { activities: Act[] }).activities;
     if (section === "transfers") rows = rows.filter((item) => item.kind.includes("upload") || item.kind.includes("download"));
-    if (section === "notifications") rows = rows.filter((item) => /integrity|recovery|upload|error|failed/.test(item.kind));
+    if (section === "notifications") rows = rows.filter((item) => /integrity|recovery|upload|sync|error|failed/.test(item.kind));
     const title = section === "transfers" ? "Transfer center" : section === "notifications" ? "Notifications" : "Activity";
     return <Page title={title}><div className="mesh-card divide-y divide-[var(--border)]">{rows.length === 0 && <Empty text="No events yet."/>}{rows.map((item) => <div key={item.id} className="flex items-start gap-3 p-4"><Activity size={17} className="mt-0.5 text-[var(--blue)]"/><div><div className="text-sm font-medium">{item.kind.replaceAll("_", " ")}</div><div className="mt-1 text-xs text-[var(--muted)]">{date(item.createdAt)}</div></div></div>)}</div></Page>;
   }
@@ -160,7 +167,7 @@ export function SectionView({ section }: { section: Section }) {
   if (section === "recovery" && data) {
     const recovery = data as Recovery;
     const accounts = recovery.accounts.map((account) => ({ ...account, name: null, mode: "", priority: 0, quotaLimit: 0, quotaUsage: 0, free: 0 }));
-    return <Page title="Recovery" action={<div className="flex gap-2"><button onClick={() => void snapshot()} className="btn"><UploadCloud size={16}/>Write snapshot</button><button onClick={() => void restore()} className="btn"><RefreshCw size={16}/>Restore index</button></div>} message={message}><p className="mb-5 max-w-3xl text-sm text-[var(--muted)]">A signed filesystem manifest is copied into the hidden application-data area of each healthy Google account. Meshly can use the newest valid copy to rebuild logical metadata after database loss.</p><AccountCards accounts={accounts}/></Page>;
+    return <Page title="Recovery" action={<div className="flex gap-2"><button onClick={() => void snapshot()} className="btn"><UploadCloud size={16}/>Write snapshot</button><button onClick={() => void restore()} className="btn"><RefreshCw size={16}/>Restore index</button></div>} message={message}><p className="mb-5 max-w-3xl text-sm text-[var(--muted)]">A signed manifest of Meshly-managed folders, files, and chunk locations is copied into the hidden application-data area of each healthy Google account. The newest valid copy can rebuild the logical index after database loss.</p><AccountCards accounts={accounts}/></Page>;
   }
 
   if (section === "diagnostics" && data) {
@@ -189,5 +196,5 @@ function Empty({ text }: { text: string }) {
   return <div className="p-8 text-center text-sm text-[var(--muted)]">{text}</div>;
 }
 function AccountCards({ accounts }: { accounts: Account[] }) {
-  return <div className="mt-5 grid gap-3 md:grid-cols-2">{accounts.map((account) => {const pct = account.quotaLimit ? Math.round((account.quotaUsage / account.quotaLimit) * 100) : 0; return <div className="mesh-card p-4" key={account.id}><div className="flex items-center gap-3"><HardDrive size={18}/><div className="min-w-0"><div className="truncate text-sm font-medium">{account.email}</div><div className="text-xs text-[var(--muted)]">{account.status}</div></div></div>{account.quotaLimit > 0 && <><div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full bg-[var(--blue)]" style={{ width: `${pct}%` }}/></div><div className="mt-2 text-xs text-[var(--muted)]">{fmt(account.quotaUsage)} / {fmt(account.quotaLimit)} · {fmt(account.free)} free</div></>}{account.lastRecoverySnapshot && <div className="mt-2 text-xs text-[var(--muted)]">Recovery: {date(account.lastRecoverySnapshot)}</div>}{account.lastError && <div className="mt-2 text-xs text-[var(--red)]">{account.lastError}</div>}</div>;})}</div>;
+  return <div className="mt-5 grid gap-3 md:grid-cols-2">{accounts.map((account) => { const pct = account.quotaLimit ? Math.round((account.quotaUsage / account.quotaLimit) * 100) : 0; return <div className="mesh-card p-4" key={account.id}><div className="flex items-center gap-3"><HardDrive size={18}/><div className="min-w-0"><div className="truncate text-sm font-medium">{account.email}</div><div className="text-xs text-[var(--muted)]">{account.status}</div></div></div>{account.quotaLimit > 0 && <><div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--border)]"><div className="h-full bg-[var(--blue)]" style={{ width: `${pct}%` }}/></div><div className="mt-2 text-xs text-[var(--muted)]">{fmt(account.quotaUsage)} / {fmt(account.quotaLimit)} · {fmt(account.free)} free</div></>}{account.lastRecoverySnapshot && <div className="mt-2 text-xs text-[var(--muted)]">Recovery: {date(account.lastRecoverySnapshot)}</div>}{account.lastError && <div className="mt-2 text-xs text-[var(--red)]">{account.lastError}</div>}</div>; })}</div>;
 }
