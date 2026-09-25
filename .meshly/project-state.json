@@ -4,15 +4,15 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "credentials_deployment_real_integration_verification",
-  "status": "production_code_preflight_security_demo_visual_polish_scroll_scrubbed_placement_and_public_dark_mode_complete_pending_credentialed_integration",
+  "status": "production_code_preflight_security_demo_visual_polish_scroll_scrubbed_placement_public_dark_mode_and_ui_refinement_complete_pending_credentialed_integration",
   "checkpointDate": "2026-09-26",
-  "generatedFromCommit": "18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db",
-  "lastVerifiedRuntimeCommit": "18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db",
+  "generatedFromCommit": "fc6f6688000f0fd296e23507b1cbcf1fb8cee472",
+  "lastVerifiedRuntimeCommit": "fc6f6688000f0fd296e23507b1cbcf1fb8cee472",
   "requiredReads": [
     "AGENTS.md",
     "CHECKPOINT.md",
     ".meshly/project-state.json",
-    "docs/checkpoints/2026-09-26-public-dark-mode-source-credit-complete.md",
+    "docs/checkpoints/2026-09-26-header-scroll-footer-refinement-complete.md",
     "DEPLOYMENT.md",
     "PRODUCTION_TESTING.md"
   ],
@@ -71,7 +71,13 @@
     "persistent_public_light_dark_toggle",
     "public_dark_theme_surface_polish",
     "adaptive_public_github_view_source_control",
-    "cassiel_footer_credit_and_github_profile_link"
+    "cassiel_footer_credit_and_github_profile_link",
+    "compact_non_overlapping_public_top_controls",
+    "extended_scroll_story_travel_distance",
+    "softened_scroll_scrub_spring",
+    "widened_split_animation_timing_windows",
+    "centered_bodoni_footer_signature",
+    "single_public_footer_signature"
   ],
   "verifiedByCI": [
     "modern_github_actions_setup",
@@ -85,7 +91,8 @@
     "interactive_demo_and_scroll_motion_build",
     "editorial_hero_and_live_placement_map_build",
     "true_scroll_scrubbed_placement_map_build",
-    "public_dark_mode_source_and_footer_credit_build"
+    "public_dark_mode_source_and_footer_credit_build",
+    "header_scroll_footer_refinement_build"
   ],
   "pendingIntegration": [
     "production_postgres_migration",
@@ -102,7 +109,7 @@
     "deployed_share_link_controls",
     "vercel_cron_authentication",
     "desktop_and_mobile_deployment_smoke_test",
-    "deployed_landing_demo_dark_mode_source_controls_footer_and_scroll_scrubbed_placement_smoke_test"
+    "deployed_header_footer_dark_mode_and_slow_scroll_placement_smoke_test"
   ],
   "nextActions": [
     "provision_tls_postgres",
@@ -114,7 +121,7 @@
     "force_cross_account_file_and_compare_original_download_sha256",
     "run_integrity_and_recovery_rehearsal",
     "verify_sharing_and_maintenance",
-    "run_desktop_and_mobile_smoke_tests_including_dark_mode_source_controls_footer_credit_editorial_hero_and_scroll_scrubbed_placement_motion",
+    "run_desktop_and_mobile_smoke_tests_including_compact_top_controls_footer_signature_dark_mode_editorial_hero_and_slow_scroll_scrubbed_placement_motion",
     "run_pnpm_release_check",
     "rerun_pnpm_verify",
     "patch_only_failures_found_by_real_tests",
@@ -131,6 +138,9 @@
     "do_not_remove_persistent_public_dark_mode_or_source_credit_chrome_without_a_verified_issue",
     "placement_story_must_be_driven_by_real_scroll_progress_not_time_looping",
     "scrolling_backward_must_reverse_the_placement_sequence",
+    "keep_public_top_controls_compact_and_non_overlapping",
+    "keep_single_editorial_public_footer_signature",
+    "preserve_slow_extended_scroll_story_unless_deployed_testing_proves_a_problem",
     "repository_newer_than_checkpoint_wins",
     "never_publish_logical_file_before_all_required_parts_verify",
     "never_disconnect_account_while_managed_chunks_depend_on_it",
