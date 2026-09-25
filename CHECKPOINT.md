@@ -14,6 +14,8 @@ Meshly is production-code complete and is now in the **credentials + deployment 
 
 Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, or interactive demo/landing-motion redesign. Newer repository commits always take precedence over this checkpoint.
 
+The newest visual-polish changes after the verified commit add the requested Bodoni editorial hero treatment and a rebuilt animated Live Placement Map. They are being verified by CI now; until that run is green, the verified runtime pointer above intentionally remains on `174cc527b4eda3949860789210e6d39dd8229509`.
+
 ## Completed in code
 
 ### Product / UI
@@ -30,6 +32,8 @@ Do **not** restart the product build, storage engine, security hardening, produc
 - Landing visual cleanup removed emoji/generic mock artifacts and replaced them with consistent product icons/surfaces.
 - Landing motion includes scroll progress, staged reveals, restrained hover motion and a pinned scroll-driven storage-placement story.
 - Motion is transform/opacity-first with `prefers-reduced-motion` fallbacks.
+- Hero subtitle `One Meshly workspace.` now uses the requested Bodoni Moda italic editorial style with a soft pink → lavender gradient.
+- Live Placement Map has been rebuilt as a dedicated component with aligned header text, balanced AUTO control, fixed destination-card alignment, animated path drawing, moving split particles, flowing dash motion, endpoint glows and reduced-motion fallback.
 
 ### Storage engine
 
@@ -80,7 +84,7 @@ Do **not** restart the product build, storage engine, security hardening, produc
 - Dependabot monitors npm and GitHub Actions.
 - Durable AI continuation system exists in `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `CONTINUE.md`, and `docs/checkpoints/`.
 
-## Latest verification
+## Verification already completed
 
 GitHub Actions run `36189159898` for commit `174cc527b4eda3949860789210e6d39dd8229509` passed:
 
@@ -94,7 +98,9 @@ GitHub Actions run `36189159898` for commit `174cc527b4eda3949860789210e6d39dd82
 
 An earlier UI run correctly caught two conditional `useTransform` hook calls in the new scroll choreography. Those were fixed before the verified run above.
 
-## Not yet proven with real production credentials
+The newest editorial-font and placement-map animation code is implemented after that verified commit and must pass the same full gate before the verified pointer is advanced.
+
+## NOT yet proven with real production credentials
 
 These are integration/deployment tasks, not missing product code:
 
@@ -114,19 +120,20 @@ These are integration/deployment tasks, not missing product code:
 
 ## Next actions — do these in order
 
-1. Provision production PostgreSQL with TLS.
-2. Add all environment variables from `.env.example`.
-3. Run `pnpm db:migrate` against production.
-4. Deploy `main` to Vercel/Node 22+.
-5. Run `pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json` and require all checks to pass.
-6. Run the required tests in `PRODUCTION_TESTING.md` and record non-secret evidence in `.meshly/integration-results.json`.
-7. Force one test file to span at least two Google accounts, download it and compare whole-file SHA-256.
-8. Run Integrity and Recovery rehearsals.
-9. Verify public sharing and scheduled maintenance.
-10. Smoke-test desktop and mobile, including landing/demo animations and reduced-motion behavior.
-11. Run `pnpm release:check` and `pnpm verify`.
-12. Fix only failures found by real testing, rerunning the relevant test and full gate after each fix.
-13. When all required credential-dependent tests pass, update this checkpoint to **production verified** and create the release/tag.
+1. Finish CI verification for the newest editorial hero + Live Placement Map changes; patch only if CI finds a problem.
+2. Provision production PostgreSQL with TLS.
+3. Add all environment variables from `.env.example`.
+4. Run `pnpm db:migrate` against production.
+5. Deploy `main` to Vercel/Node 22+.
+6. Run `pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json` and require all checks to pass.
+7. Run the required tests in `PRODUCTION_TESTING.md` and record non-secret evidence in `.meshly/integration-results.json`.
+8. Force one test file to span at least two Google accounts, download it and compare whole-file SHA-256.
+9. Run Integrity and Recovery rehearsals.
+10. Verify public sharing and scheduled maintenance.
+11. Smoke-test desktop and mobile, including landing/demo animations and reduced-motion behavior.
+12. Run `pnpm release:check` and `pnpm verify`.
+13. Fix only failures found by real testing, rerunning the relevant test and full gate after each fix.
+14. When all required credential-dependent tests pass, update this checkpoint to **production verified** and create the release/tag.
 
 ## External constraint
 
