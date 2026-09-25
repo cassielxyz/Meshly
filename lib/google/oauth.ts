@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 
 export type GoogleMode="managed"|"full";
-const MANAGED_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive.file"];
-const FULL_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive"];
+const APPDATA_SCOPE="https://www.googleapis.com/auth/drive.appdata";
+const MANAGED_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive.file",APPDATA_SCOPE];
+const FULL_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive",APPDATA_SCOPE];
 function config(){const clientId=process.env.GOOGLE_CLIENT_ID;const clientSecret=process.env.GOOGLE_CLIENT_SECRET;const redirectUri=process.env.GOOGLE_REDIRECT_URI;if(!clientId||!clientSecret||!redirectUri)throw new Error("Google OAuth is not configured");return{clientId,clientSecret,redirectUri};}
 export function createPkce(){const verifier=randomBytes(48).toString("base64url");const challenge=createHash("sha256").update(verifier).digest("base64url");return{verifier,challenge};}
 export function buildGoogleAuthorizationUrl({state,challenge,mode}:{state:string;challenge:string;mode:GoogleMode}){const {clientId,redirectUri}=config();const url=new URL("https://accounts.google.com/o/oauth2/v2/auth");url.search=new URLSearchParams({client_id:clientId,redirect_uri:redirectUri,response_type:"code",scope:(mode==="full"?FULL_SCOPES:MANAGED_SCOPES).join(" "),access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"}).toString();return url.toString();}

@@ -1,0 +1,11 @@
+ALTER TABLE logical_files ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE logical_files ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1;
+ALTER TABLE logical_files ADD COLUMN IF NOT EXISTS trashed_at timestamptz;
+ALTER TABLE logical_files ADD COLUMN IF NOT EXISTS trashed_parent_id text;
+CREATE INDEX IF NOT EXISTS logical_files_user_updated_idx ON logical_files(user_id,updated_at DESC);
+CREATE INDEX IF NOT EXISTS logical_files_user_trash_idx ON logical_files(user_id,trashed_at);
+CREATE TABLE IF NOT EXISTS user_settings (user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,preferences jsonb NOT NULL DEFAULT '{"theme":"light","density":"comfortable","defaultView":"list","wholeFileFirst":true,"reserveBytes":536870912,"notifications":true}'::jsonb,updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS shares (id text PRIMARY KEY,user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,file_id text NOT NULL REFERENCES logical_files(id) ON DELETE CASCADE,token_hash text NOT NULL UNIQUE,password_hash text,expires_at timestamptz,max_downloads integer,download_count integer NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT now(),revoked_at timestamptz);
+CREATE INDEX IF NOT EXISTS shares_user_idx ON shares(user_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS shares_file_idx ON shares(file_id);
+CREATE TABLE IF NOT EXISTS sync_state (account_id text PRIMARY KEY REFERENCES linked_accounts(id) ON DELETE CASCADE,change_page_token text,last_quota_refresh timestamptz,last_recovery_snapshot timestamptz,last_error text,updated_at timestamptz NOT NULL DEFAULT now());
