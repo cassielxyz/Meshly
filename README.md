@@ -8,33 +8,31 @@
 
 ## What is Meshly?
 
-Meshly is a virtual filesystem for people who keep storage across multiple Google accounts. Instead of browsing each account separately, Meshly presents one logical workspace, one storage meter and one set of folders.
+Meshly is a virtual filesystem for storage spread across multiple Google accounts. Users work inside one logical workspace while Meshly decides where the underlying bytes live.
 
-When a file fits safely in one connected account, Meshly keeps it whole. When it does not, the placement engine can split the byte stream into deterministic parts, store those parts across healthy accounts and reconstruct the original file during download without first buffering the entire file on the application server.
+If a file safely fits in one healthy account, Meshly keeps it whole. If it does not, the placement engine splits the original byte stream into deterministic parts, stores those parts across available accounts, records integrity metadata, and reconstructs the exact original stream on download.
 
 <p align="center"><img src="docs/assets/storage-flow.svg" alt="Meshly logical-to-physical storage flow" width="94%"></p>
 
-## Highlights
+## Production feature set
 
-- **Drive-style workspace** — familiar list/grid navigation, sidebar, search surface, recents, starred, shared, trash and storage views.
-- **Unified storage pool** — actual Google quota is stored per connected account and combined into one capacity view.
-- **Whole-file-first planner** — fragmentation happens only when no healthy account can safely hold the complete file.
-- **Resumable direct uploads** — the backend creates Google Drive resumable sessions; the browser uploads file ranges to those sessions rather than proxying multi-GB payloads through the web server.
-- **Large-file integrity** — incremental SHA-256 hashing avoids loading the whole file into browser memory.
-- **Cross-account reconstruction** — downloads stream physical parts in logical order and support HTTP byte ranges.
-- **Two OAuth modes** — Managed mode uses `drive.file` by default; Full mode is optional for broader indexing use cases.
-- **Security-first secrets** — refresh tokens are encrypted with AES-256-GCM and session cookies are HttpOnly/SameSite.
-- **Light-first design** — Google-inspired productivity colors with an original Meshly mesh mark; dark-theme tokens are included.
-
-## Product map
-
-The routing shell already covers the major product areas: landing, sign-in, onboarding, My Drive, recent, starred, shared, trash, storage pool, connected accounts, transfer center, activity, integrity, recovery, notifications, diagnostics, help, privacy, profile, and settings for general/storage/transfers/appearance/security/notifications/advanced preferences. Error and 404 states are included too.
-
-Live file browsing/folder mutation is the next data-binding milestone; the current workspace uses representative demo content while authentication, storage planning, resumable upload, commit verification and download reconstruction are implemented in the API layer.
+- **Live unified filesystem** — folders, file/folder upload, search, list/grid browsing, breadcrumbs, rename, move, copy, star, trash, restore and permanent delete.
+- **Unified storage pool** — real Drive quota and account health are combined into one storage view.
+- **Whole-file-first placement** — fragmentation happens only when one account cannot safely hold the complete file.
+- **Resumable direct uploads** — the backend creates Google Drive resumable sessions and the browser streams ranges directly to Google instead of proxying multi-GB payloads through Meshly.
+- **Incremental SHA-256** — large files are hashed without reading the complete file into browser memory.
+- **Cross-account reconstruction** — managed multipart files stream back in logical order with HTTP byte-range support.
+- **Managed + Full modes** — Managed mode uses `drive.file`; Full mode can index pre-existing Drive content after the deployment satisfies Google's broader-scope requirements.
+- **Signed disaster recovery** — Meshly-managed filesystem/chunk manifests are signed and copied to Drive `appDataFolder`, with restore tooling in the UI.
+- **Integrity verification** — physical parts can be re-checked and logical files marked degraded when storage disappears or changes unexpectedly.
+- **Secure sharing** — expiring links, optional passwords, download caps, revocation, short-lived signed grants, and persisted authorization-attempt rate limiting.
+- **Background maintenance** — scheduled quota refresh, Full Drive change sync, account-health updates and recovery snapshots.
+- **Production security** — encrypted refresh tokens, HttpOnly/SameSite sessions, PKCE/state OAuth, CSP/HSTS/security headers, same-origin mutation enforcement and deployment readiness checks.
+- **Operational UI** — transfers, notifications/activity, accounts, storage, diagnostics, integrity, recovery, profile, help/privacy, settings, error and empty states.
 
 ## Stack
 
-`Next.js 16` · `React 19` · `TypeScript` · `Tailwind CSS 4` · shadcn/Radix-style UI primitives · `Drizzle ORM` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
+`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Radix/shadcn-style primitives · `Drizzle ORM` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
 
 ## Quick start
 
@@ -43,86 +41,77 @@ git clone https://github.com/cassielxyz/Meshly.git
 cd Meshly
 pnpm install
 cp .env.example .env.local
+pnpm db:migrate
 pnpm dev
 ```
 
 Open `http://localhost:3000`.
 
-### Database
+## Configuration
 
-Create a PostgreSQL database and execute:
+Fill every value in `.env.local` using `.env.example`. Meshly validates production configuration through `/api/readiness`; missing or malformed deployment configuration returns HTTP 503 without exposing secret values.
 
-```text
-db/migrations/0001_meshly.sql
-```
-
-Then set `DATABASE_URL` in `.env.local`.
-
-### Google OAuth
-
-Create an OAuth 2.0 **Web application** in Google Cloud, enable the Google Drive API and configure the callback URL used by `GOOGLE_REDIRECT_URI`, for example:
+For Google OAuth, create a Web application, enable the Drive API, and configure the exact callback used by `GOOGLE_REDIRECT_URI`:
 
 ```text
-http://localhost:3000/api/auth/google/callback
+https://YOUR_DOMAIN/api/auth/google/callback
 ```
 
-The default Managed flow requests OpenID profile/email plus `drive.file`. Full Drive mode should only be enabled when the deployment has completed the Google verification required for the broader scope.
+The default Managed flow requests OpenID profile/email plus `drive.file` and `drive.appdata`. Full Drive mode is optional and should only be enabled publicly after the deployment satisfies Google's requirements for the broader Drive scope.
 
-### Secrets
-
-Generate fresh values; never copy the examples into production.
-
-```bash
-# SESSION_SECRET — 32+ random bytes
-openssl rand -base64 48
-
-# TOKEN_ENCRYPTION_KEY — exactly 32 bytes, base64 encoded
-openssl rand -base64 32
-```
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete credential and launch checklist.
 
 ## Transfer model
 
-1. Browser posts name, MIME type and file size to `/api/uploads/plan`.
-2. Meshly reads healthy connected-account quota and applies the reserve-aware placement algorithm.
-3. The API creates one or more Google Drive resumable sessions.
-4. The browser incrementally hashes the selected ranges and uploads them in 8 MiB network chunks.
-5. `/api/uploads/commit` verifies the physical objects and marks the logical file ready.
-6. `/api/files/:id/download` translates logical ranges into Drive ranges and streams the parts in order.
+1. The browser submits logical metadata to `/api/uploads/plan`.
+2. Meshly refreshes/uses healthy account capacity and applies reserve-aware placement.
+3. The API creates one or more Google Drive resumable upload sessions.
+4. The browser incrementally hashes and uploads the planned source ranges.
+5. `/api/uploads/commit` validates the physical objects and promotes the logical file to ready only after all parts verify.
+6. `/api/files/:id/download` translates logical byte ranges into one or more Drive byte ranges and streams them in order.
+7. Integrity and recovery services can independently verify/rebuild Meshly-managed metadata.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for invariants and recovery design.
+## Product areas
+
+Landing · login · onboarding · My Drive · folders · search · recent · starred · shared · trash · storage pool · connected accounts · transfer center · activity · integrity · recovery · notifications · diagnostics · help · privacy · profile · general/storage/transfer/appearance/security/notification/advanced settings · public share pages · error/404 states.
 
 ## Design system
 
-Meshly intentionally feels familiar to Drive users without copying Google Drive's logo or product identity. The brand uses the Google productivity color family — blue `#4285F4`, green `#34A853`, yellow `#FBBC04`, red `#EA4335` — in an original connected-node mark. UI typography prioritizes **Inter** with **Manrope** as the preferred display companion and system fallbacks for zero-blocking startup.
+Meshly intentionally feels familiar to Drive users without copying Google Drive's product identity. It uses the Google productivity color family — blue `#4285F4`, green `#34A853`, yellow `#FBBC04`, red `#EA4335` — in an original connected-node Meshly mark. The interface is light-first with complete dark tokens, responsive desktop/mobile navigation, accessible focus states and reduced-motion-aware interaction patterns.
 
 ## Verification
 
-Every push and pull request runs the `Meshly CI` workflow:
+Every push and pull request runs:
 
 ```text
-install → lint → typecheck → unit tests → production build
+install → lint → strict typecheck → unit tests → optimized production build
 ```
 
-The storage planner includes tests for whole-file placement, deterministic cross-account splitting and insufficient pooled capacity.
+Locally the same gate is available as:
+
+```bash
+pnpm verify
+```
+
+Tests currently cover storage placement invariants, share-security primitives, and deployment-environment validation. Credential-dependent Google integration behavior is exercised after real OAuth/database credentials are configured.
 
 ## Security
 
-Read [SECURITY.md](SECURITY.md) before deploying Meshly publicly. Broad Google Drive scopes can require additional OAuth verification/security review. Do not expose refresh tokens or upload-session URLs in logs.
+Read [SECURITY.md](SECURITY.md) before deployment. Refresh tokens are AES-256-GCM encrypted at rest. Public sharing uses hashed tokens and signed short-lived grants. Unsafe `/api/*` mutations are same-origin guarded by Next.js Proxy. Never expose OAuth refresh tokens or Google resumable-upload session URLs in logs.
 
-## Roadmap
+## Operations
 
-- Bind Drive UI to the live logical index and implement folder CRUD
-- Store signed recovery manifests in Drive `appDataFolder`
-- Full existing-Drive indexing for verified Full mode deployments
-- Background quota refresh/account-health jobs
-- Share links with expiration/password controls
-- Versioning, duplicate detection and orphan repair
-- PWA/offline metadata cache
-- Dedicated OWASP + Strix-style security test suite
+`vercel.json` schedules `/api/maintenance` daily. The endpoint requires `Authorization: Bearer <CRON_SECRET>` and performs quota/account refresh, Full Drive change synchronization, and recovery-manifest maintenance.
+
+`GET /api/health` is a lightweight service endpoint. `GET /api/readiness` verifies required deployment configuration and database reachability and should be used as the pre-traffic readiness gate.
+
+## Before the first real-user test
+
+No code changes are required for basic production wiring. Add the production database + Google OAuth credentials + independent secrets, run migrations, deploy, confirm `/api/readiness`, and then execute the integration checklist in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Pull requests should preserve the storage invariants and include tests for placement or manifest changes.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes to placement, manifests, reconstruction, account removal, sharing or recovery must preserve storage/security invariants and include tests.
 
 ---
 
