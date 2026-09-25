@@ -1,5 +1,1 @@
-import { DriveShell } from "@/components/workspace/drive-shell";
-
-export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  return <DriveShell>{children}</DriveShell>;
-}
+import{cookies}from"next/headers";import{redirect}from"next/navigation";import{DriveShell}from"@/components/workspace/drive-shell";import{verifySessionToken}from"@/lib/security/crypto";export const dynamic="force-dynamic";export default async function WorkspaceLayout({children}:{children:React.ReactNode}){const token=(await cookies()).get("meshly_session")?.value;if(!token)redirect("/login");try{await verifySessionToken(token);}catch{redirect("/login");}return <DriveShell>{children}</DriveShell>;}
