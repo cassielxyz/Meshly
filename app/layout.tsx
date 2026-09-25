@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bodoni_Moda } from "next/font/google";
+import { PublicSiteChrome } from "@/components/public/public-site-chrome";
 import "./globals.css";
 
 const bodoni = Bodoni_Moda({
@@ -20,7 +21,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning className={bodoni.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PublicSiteChrome />
+      </body>
     </html>
   );
 }
