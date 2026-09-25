@@ -79,7 +79,7 @@ function ProductPreview() {
         <aside className="hidden border-r border-[var(--border)] bg-[#f8fafd] p-4 md:block">
           <div className="rounded-2xl bg-[#c2e7ff] px-4 py-3 text-sm font-semibold">My Drive</div>
           <div className="mt-4 space-y-1 text-sm text-[var(--muted)]">
-            {['Recent', 'Starred', 'Shared', 'Trash'].map((item) => <div key={item} className="rounded-xl px-4 py-2">{item}</div>)}
+            {["Recent", "Starred", "Shared", "Trash"].map((item) => <div key={item} className="rounded-xl px-4 py-2">{item}</div>)}
           </div>
           <div className="mt-8 text-[11px] font-semibold uppercase tracking-[.14em] text-[var(--muted)]">Storage pool</div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#e1e6ed]">
@@ -138,13 +138,20 @@ function ScrollStory() {
   const partTwo = useTransform(smooth, [0.43, 0.61], [0, 1]);
   const partThree = useTransform(smooth, [0.52, 0.7], [0, 1]);
   const restored = useTransform(smooth, [0.7, 0.86], [0, 1]);
+  const glowLeftY = useTransform(smooth, [0, 1], [60, -50]);
+  const glowRightY = useTransform(smooth, [0, 1], [-50, 65]);
+  const storageNodes = [
+    { name: "Personal", size: "4.0 GB", color: "#4285F4", opacity: partOne },
+    { name: "Projects", size: "6.0 GB", color: "#34A853", opacity: partTwo },
+    { name: "Archive", size: "4.2 GB", color: "#FBBC04", opacity: partThree },
+  ];
 
   return (
     <section ref={ref} id="architecture" className="relative min-h-[170vh] bg-[#0f172a] text-white">
       <div className="sticky top-0 flex min-h-screen items-center overflow-hidden px-5 py-24 sm:px-8">
         <div className="deep-grid pointer-events-none absolute inset-0 opacity-60" />
-        <motion.div style={reduceMotion ? undefined : { y: useTransform(smooth, [0, 1], [60, -50]) }} className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#4285F4]/20 blur-[90px]" />
-        <motion.div style={reduceMotion ? undefined : { y: useTransform(smooth, [0, 1], [-50, 65]) }} className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-[#34A853]/15 blur-[90px]" />
+        <motion.div style={reduceMotion ? undefined : { y: glowLeftY }} className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#4285F4]/20 blur-[90px]" />
+        <motion.div style={reduceMotion ? undefined : { y: glowRightY }} className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-[#34A853]/15 blur-[90px]" />
         <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[.88fr_1.12fr] lg:items-center">
           <div className="max-w-xl">
             <div className="text-xs font-semibold uppercase tracking-[.18em] text-[#8ab4f8]">One logical file · many storage nodes</div>
@@ -177,18 +184,14 @@ function ScrollStory() {
                 <FileArchive size={15} className="text-[#4285F4]" /> 14.2 GB
               </motion.div>
               <div className="absolute right-6 top-6 grid w-[190px] gap-3">
-                {[
-                  ["Personal", "4.0 GB", "#4285F4", partOne],
-                  ["Projects", "6.0 GB", "#34A853", partTwo],
-                  ["Archive", "4.2 GB", "#FBBC04", partThree],
-                ].map(([name, size, color, opacity]) => (
-                  <div key={String(name)} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3">
-                    <motion.div style={reduceMotion ? { opacity: 1 } : { opacity }} className="absolute inset-y-0 left-0 w-1" aria-hidden="true"><div className="h-full w-full" style={{ backgroundColor: String(color) }} /></motion.div>
-                    <div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold">{String(name)}</span><span className="text-[11px] text-white/48">{String(size)}</span></div>
+                {storageNodes.map((node) => (
+                  <div key={node.name} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3">
+                    <motion.div style={{ opacity: reduceMotion ? 1 : node.opacity }} className="absolute inset-y-0 left-0 w-1" aria-hidden="true"><div className="h-full w-full" style={{ backgroundColor: node.color }} /></motion.div>
+                    <div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold">{node.name}</span><span className="text-[11px] text-white/48">{node.size}</span></div>
                   </div>
                 ))}
               </div>
-              <motion.div style={reduceMotion ? { opacity: 1 } : { opacity: restored }} className="absolute bottom-5 left-6 right-6 flex items-center justify-between rounded-2xl border border-[#81c995]/20 bg-[#81c995]/10 px-4 py-3">
+              <motion.div style={{ opacity: reduceMotion ? 1 : restored }} className="absolute bottom-5 left-6 right-6 flex items-center justify-between rounded-2xl border border-[#81c995]/20 bg-[#81c995]/10 px-4 py-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[#b7e1c1]"><FileCheck2 size={16} /> Whole-file SHA-256 verified</div>
                 <span className="text-[11px] text-white/45">1 logical file</span>
               </motion.div>
