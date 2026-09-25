@@ -5,7 +5,7 @@
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Checkpoint generated after verified runtime/ops commit:** `92549c6dd709f1b94849efb34c1bf4ffc65cd7de`  
+**Checkpoint generated after verified runtime/ops commit:** `5ae4c686c6becda098b7df3ace5d79c873e381b0`  
 **Latest milestone record:** `docs/checkpoints/2026-09-26-production-preflight-tooling-complete.md`
 
 ## Project goal
@@ -57,11 +57,12 @@ Meshly presents multiple connected Google Drive accounts as one Drive-like logic
 - CSP/HSTS/security headers and same-origin protection for unsafe `/api/*` mutations.
 - Request IDs for tracing.
 - `/api/health` and production `/api/readiness` checks.
-- `/api/readiness` now verifies required migrated tables/columns for migrations 0001-0004, not only DB connectivity.
+- `/api/readiness` verifies required migrated tables/columns for migrations 0001-0004, not only DB connectivity.
 - Scheduled `/api/maintenance` endpoint protected by `CRON_SECRET` for quota refresh, Full Drive synchronization and recovery maintenance.
 - PostgreSQL/Drizzle schema and migrations.
 - Vercel cron configuration.
 - `pnpm production:preflight` automated deployed-origin verification harness.
+- Preflight verifies security headers, health, environment/database/migrations, Google OAuth redirect + PKCE S256, default Managed scopes (`drive.file` + `drive.appdata`), absence of accidental broad Drive scope, exact callback URL, cron auth protection and cross-origin mutation rejection.
 - `PRODUCTION_TESTING.md` credential-dependent test matrix and local evidence template.
 - `pnpm release:check` evidence gate for final production release readiness.
 - CI for checkpoint validation, lint, strict TypeScript, tests and optimized Next production build.
@@ -70,7 +71,7 @@ Meshly presents multiple connected Google Drive accounts as one Drive-like logic
 
 ## Verification already completed
 
-The latest runtime/operations state at commit `92549c6dd709f1b94849efb34c1bf4ffc65cd7de` passed GitHub Actions run `36185650013` with:
+The latest runtime/operations state at commit `5ae4c686c6becda098b7df3ace5d79c873e381b0` passed GitHub Actions run `36185897645` with:
 
 - checkpoint validation: **PASS**
 - dependency installation: **PASS**
