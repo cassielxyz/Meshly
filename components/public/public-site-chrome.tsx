@@ -26,32 +26,34 @@ export function PublicSiteChrome() {
 
   return (
     <>
-      <div className="fixed right-4 top-[76px] z-[65] flex items-center gap-2 sm:right-6 md:top-3 md:right-[184px]">
+      <div className="public-top-tools fixed right-3 top-[78px] z-[65] flex items-center gap-2 sm:right-5 md:top-3.5">
         <a
           href="https://github.com/cassielxyz/Meshly"
           target="_blank"
           rel="noreferrer"
-          className="focus-ring inline-flex h-9 items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_86%,transparent)] px-3 text-xs font-semibold text-[var(--foreground)] shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-strong)]"
+          className="focus-ring grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] text-[var(--foreground)] shadow-[0_5px_20px_rgba(0,0,0,.08)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-strong)] hover:shadow-[0_7px_24px_rgba(0,0,0,.12)]"
           aria-label="View Meshly source on GitHub"
           title="View source on GitHub"
         >
           <Github size={16} />
-          <span className="hidden lg:inline">View source</span>
         </a>
         <ThemeToggle compact />
       </div>
 
-      <footer className="public-credit-footer border-t border-[var(--border)] bg-[var(--background)] px-5 py-5 text-[var(--muted)] sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs sm:flex-row sm:text-sm">
-          <span>Built with curiosity, shipped with care — cassiel.</span>
+      <footer className="public-credit-footer border-t border-[var(--border)] bg-[var(--background)] px-5 py-10 text-[var(--muted)] sm:px-8 sm:py-12">
+        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+          <p className="public-credit-quote max-w-2xl text-[var(--foreground)]">
+            “Crafted with care, curiosity, and a little obsession.”
+          </p>
+          <div className="mt-3 text-[11px] font-semibold uppercase tracking-[.18em] text-[var(--muted)]">— cassiel</div>
           <a
             href="https://github.com/cassielxyz"
             target="_blank"
             rel="noreferrer"
-            className="focus-ring inline-flex items-center gap-2 rounded-full px-2 py-1 font-semibold text-[var(--foreground)] transition-opacity hover:opacity-70"
+            className="focus-ring mt-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-strong)]"
             aria-label="Open cassiel GitHub profile"
           >
-            <Github size={16} />
+            <Github size={15} />
             github.com/cassielxyz
           </a>
         </div>
