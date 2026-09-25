@@ -9,6 +9,8 @@ import { AuthError, requireRequestUser } from "@/lib/server/auth";
 const FOLDER = "application/vnd.meshly.folder";
 const folderSchema = z.object({ name: z.string().trim().min(1).max(255), parentId: z.string().nullable().optional() });
 
+type BreadcrumbRow = { id: string; parentId: string | null; name: string };
+
 function dto(item: typeof logicalFiles.$inferSelect) {
   return {
     id: item.id,
@@ -59,10 +61,10 @@ export async function GET(request: NextRequest) {
 
     const breadcrumbs: { id: string | null; name: string }[] = [{ id: null, name: "My Drive" }];
     if (parentId) {
-      const chain: { id: string; parentId: string | null; name: string }[] = [];
+      const chain: BreadcrumbRow[] = [];
       let cursor: string | null = parentId;
       for (let i = 0; i < 50 && cursor; i++) {
-        const current = (await db.select({ id: logicalFiles.id, parentId: logicalFiles.parentId, name: logicalFiles.name }).from(logicalFiles).where(and(eq(logicalFiles.id, cursor), eq(logicalFiles.userId, userId))).limit(1))[0];
+        const current: BreadcrumbRow | undefined = (await db.select({ id: logicalFiles.id, parentId: logicalFiles.parentId, name: logicalFiles.name }).from(logicalFiles).where(and(eq(logicalFiles.id, cursor), eq(logicalFiles.userId, userId))).limit(1))[0];
         if (!current) break;
         chain.unshift(current);
         cursor = current.parentId;
