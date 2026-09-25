@@ -5,9 +5,8 @@
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Checkpoint generated after head:** `9bb2c8e71ba816bee12fef2037034a393b8199d5`  
-**Last runtime-hardening commit verified green:** `2866cfaa8fb9c16d0c28a63a97a6e52eb1fd460a`  
-**Latest production documentation baseline before checkpoint system:** `7bec01087f9deacd678262e226bb433a68a66e93`
+**Checkpoint generated after verified runtime/ops commit:** `92549c6dd709f1b94849efb34c1bf4ffc65cd7de`  
+**Latest milestone record:** `docs/checkpoints/2026-09-26-production-preflight-tooling-complete.md`
 
 ## Project goal
 
@@ -58,38 +57,45 @@ Meshly presents multiple connected Google Drive accounts as one Drive-like logic
 - CSP/HSTS/security headers and same-origin protection for unsafe `/api/*` mutations.
 - Request IDs for tracing.
 - `/api/health` and production `/api/readiness` checks.
+- `/api/readiness` now verifies required migrated tables/columns for migrations 0001-0004, not only DB connectivity.
 - Scheduled `/api/maintenance` endpoint protected by `CRON_SECRET` for quota refresh, Full Drive synchronization and recovery maintenance.
 - PostgreSQL/Drizzle schema and migrations.
 - Vercel cron configuration.
-- CI for lint, strict TypeScript, tests and optimized Next production build.
+- `pnpm production:preflight` automated deployed-origin verification harness.
+- `PRODUCTION_TESTING.md` credential-dependent test matrix and local evidence template.
+- `pnpm release:check` evidence gate for final production release readiness.
+- CI for checkpoint validation, lint, strict TypeScript, tests and optimized Next production build.
 - Production deployment guide in `DEPLOYMENT.md`.
+- Durable continuation/checkpoint protocol in `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `CONTINUE.md`, and `docs/checkpoints/`.
 
 ## Verification already completed
 
-The runtime-hardening state at commit `2866cfaa8fb9c16d0c28a63a97a6e52eb1fd460a` passed GitHub Actions with:
+The latest runtime/operations state at commit `92549c6dd709f1b94849efb34c1bf4ffc65cd7de` passed GitHub Actions run `36185650013` with:
 
+- checkpoint validation: **PASS**
 - dependency installation: **PASS**
 - ESLint: **PASS**
 - strict TypeScript typecheck: **PASS**
 - Vitest unit tests: **PASS**
 - optimized Next.js production build: **PASS**
 
-Subsequent commit `7bec010...` was documentation-only. The new checkpoint-system commits must also pass CI before this checkpoint is advanced.
+Do not rerun or rebuild completed product features merely because a chat was lost. Newer repository commits always take precedence over this checkpoint.
 
 ## NOT yet proven with real production credentials
 
-Do not confuse these with missing code. The code paths exist, but these still require a real integration test:
+Do not confuse these with missing code. The code and verification tooling exist, but these still require a real deployment/integration test:
 
 - Production PostgreSQL connection and all migrations against the chosen hosted DB.
+- Real deployed `pnpm production:preflight` result with environment/database/migrations all ready.
 - Real Google OAuth login/callback with production client ID/secret/domain.
 - Connecting two or more real Google accounts and confirming real pooled quotas.
-- Real small-file upload/download round trip.
-- Real forced cross-account multipart upload/reconstruction and whole-file hash match.
+- Real small-file upload/download round trip with matching whole-file SHA-256.
+- Real forced cross-account multipart upload/reconstruction with matching whole-file SHA-256.
 - Real interrupted/resumed upload behavior against Google.
-- Full Drive mode indexing/change sync using an OAuth client approved for the broader scope.
+- Full Drive mode indexing/change sync using an OAuth client approved/eligible for the broader scope, only if Full mode will be enabled.
 - Integrity scan against real stored chunks.
 - Recovery snapshot written to Google app data and restore rehearsal.
-- Public share password/expiry/download-limit flow against a deployed origin.
+- Public share password/expiry/download-limit/revocation flow against a deployed origin.
 - Vercel scheduled maintenance invocation using the real `CRON_SECRET`.
 - Browser/device UX smoke test on deployed desktop and mobile layouts.
 
@@ -97,7 +103,7 @@ Do not confuse these with missing code. The code paths exist, but these still re
 
 **Phase: credentials + deployment + real integration verification.**
 
-Do not restart the product build. Do not replace implemented APIs with demos. First configure and test the existing production code. Only patch code when a real test, CI, security review, or UX smoke test reveals an issue.
+The product build, checkpoint system, production preflight harness and release evidence gate are complete. Do not restart them. First configure and test the existing production code. Only patch code when a real test, CI, security review, or UX smoke test reveals an issue.
 
 ## Next actions — do these in order
 
@@ -115,13 +121,15 @@ Do not restart the product build. Do not replace implemented APIs with demos. Fi
    - `CRON_SECRET`
 3. Run `pnpm db:migrate` against the production database.
 4. Deploy `main` to Vercel/Node 22+.
-5. Verify `GET /api/health` and require `GET /api/readiness` to return HTTP 200.
-6. Complete the real-user integration checklist in `DEPLOYMENT.md`.
+5. Run `pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json` and require every automated check to pass.
+6. Complete every required real-user test in `PRODUCTION_TESTING.md` and record non-secret local evidence in `.meshly/integration-results.json` using `docs/integration-results.template.json`.
 7. Specifically force one test file to span at least two Google accounts, download it, and compare its whole-file SHA-256 with the original.
 8. Run Integrity and Recovery tests with real Drive storage.
 9. Verify share-link controls and scheduled maintenance.
-10. Fix only issues found during those tests; rerun the full verification gate after every fix.
-11. When all credential-dependent tests pass, update this checkpoint to **production verified** and create a release/tag.
+10. Run desktop and mobile deployed smoke tests.
+11. Run `pnpm release:check` and then `pnpm verify`.
+12. Fix only issues found during those tests; rerun the relevant test plus the full verification gate after every fix.
+13. When all credential-dependent required tests pass, update this checkpoint to **production verified** and create a release/tag.
 
 ## External constraint
 
