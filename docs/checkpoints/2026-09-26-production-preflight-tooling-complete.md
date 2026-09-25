@@ -1,7 +1,7 @@
 # Meshly checkpoint — production preflight tooling complete
 
 **Date:** 2026-09-26  
-**Verified runtime/ops commit:** `92549c6dd709f1b94849efb34c1bf4ffc65cd7de`
+**Verified runtime/ops commit:** `5ae4c686c6becda098b7df3ace5d79c873e381b0`
 
 ## Milestone completed
 
@@ -11,6 +11,7 @@ Completed in this milestone:
 
 - `/api/readiness` now distinguishes environment configuration, database connectivity and required migrated schema. It probes migrations 0001-0004 read-only and refuses readiness when required tables/columns are absent.
 - `pnpm production:preflight https://DEPLOYED_ORIGIN` checks landing availability, security headers, health, readiness/migrations, Google OAuth redirect + PKCE S256, cron authentication protection and the cross-origin unsafe-mutation guard.
+- The OAuth preflight also verifies the default flow requests Managed `drive.file` + `drive.appdata`, does **not** accidentally request the broad full-Drive scope, and uses the exact deployed `/api/auth/google/callback` URL.
 - `PRODUCTION_TESTING.md` defines the required real-user verification matrix, including two-account quota pooling, small-file hash round trip, forced cross-account reconstruction hash match, resumable upload, integrity, recovery, sharing, cron and desktop/mobile smoke tests.
 - `docs/integration-results.template.json` provides a non-secret evidence shape.
 - `.meshly/preflight-report.json` and `.meshly/integration-results.json` are gitignored.
@@ -19,9 +20,10 @@ Completed in this milestone:
 
 ## Verification
 
-GitHub Actions run `36185650013` for commit `92549c6...` passed:
+GitHub Actions run `36185897645` for commit `5ae4c686...` passed:
 
 - checkpoint validation: PASS
+- dependency installation: PASS
 - ESLint: PASS
 - strict TypeScript: PASS
 - Vitest: PASS
@@ -32,6 +34,7 @@ GitHub Actions run `36185650013` for commit `92549c6...` passed:
 No real production credentials were available during this milestone, so the following remain integration work rather than code work:
 
 - hosted TLS PostgreSQL + production migrations;
+- real deployed automated preflight;
 - real Google OAuth and multiple real accounts;
 - real upload/download/reconstruction tests;
 - real integrity/recovery/share/cron tests;
