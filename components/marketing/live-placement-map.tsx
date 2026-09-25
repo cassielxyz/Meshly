@@ -11,8 +11,6 @@ import {
 } from "motion/react";
 import { useEffect, useRef } from "react";
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
 type ChunkMotion = {
   pathLength: MotionValue<number>;
   pathOpacity: MotionValue<number>;
@@ -31,15 +29,15 @@ function useChunkMotion(
   end: number,
   targetTop: string,
 ): ChunkMotion {
-  const pathLength = useTransform(progress, [start - 0.035, end], [0, 1]);
-  const pathOpacity = useTransform(progress, [start - 0.04, start, end], [0.14, 0.52, 0.9]);
+  const pathLength = useTransform(progress, [start - 0.055, end], [0, 1]);
+  const pathOpacity = useTransform(progress, [start - 0.06, start, end], [0.1, 0.48, 0.9]);
   const left = useTransform(progress, [start, end], ["34.5%", "56.5%"]);
   const top = useTransform(progress, [start, end], ["50%", targetTop]);
-  const opacity = useTransform(progress, [start - 0.045, start, end, end + 0.065], [0, 1, 1, 0]);
-  const scale = useTransform(progress, [start, end], [0.82, 1]);
-  const cardOpacity = useTransform(progress, [start - 0.03, end], [0.58, 1]);
-  const cardX = useTransform(progress, [start - 0.03, end], [10, 0]);
-  const cardGlow = useTransform(progress, [end - 0.045, end, end + 0.07], [0, 1, 0.45]);
+  const opacity = useTransform(progress, [start - 0.07, start, end, end + 0.085], [0, 1, 1, 0]);
+  const scale = useTransform(progress, [start, end], [0.78, 1]);
+  const cardOpacity = useTransform(progress, [start - 0.055, end], [0.52, 1]);
+  const cardX = useTransform(progress, [start - 0.055, end], [14, 0]);
+  const cardGlow = useTransform(progress, [end - 0.07, end, end + 0.09], [0, 1, 0.42]);
   return { pathLength, pathOpacity, left, top, opacity, scale, cardOpacity, cardX, cardGlow };
 }
 
@@ -53,7 +51,13 @@ export function LivePlacementMap() {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = useReducedMotion();
   const rawProgress = useMotionValue(0);
-  const progress = useSpring(rawProgress, { stiffness: 150, damping: 30, mass: 0.34 });
+  const progress = useSpring(rawProgress, {
+    stiffness: 68,
+    damping: 24,
+    mass: 0.88,
+    restDelta: 0.0005,
+    restSpeed: 0.002,
+  });
 
   useEffect(() => {
     const section = shellRef.current?.closest("#architecture") as HTMLElement | null;
@@ -85,20 +89,20 @@ export function LivePlacementMap() {
     };
   }, [rawProgress, reduceMotion]);
 
-  const trunkLength = useTransform(progress, [0.06, 0.23], [0, 1]);
-  const trunkOpacity = useTransform(progress, [0.04, 0.13, 0.23], [0.12, 0.72, 0.95]);
-  const splitterOpacity = useTransform(progress, [0.17, 0.24, 0.78], [0, 1, 1]);
-  const splitterScale = useTransform(progress, [0.17, 0.24], [0.45, 1]);
-  const sourceOpacity = useTransform(progress, [0, 0.22, 0.37, 0.82], [1, 1, 0.46, 0.28]);
-  const sourceScale = useTransform(progress, [0, 0.22, 0.37], [1, 1, 0.94]);
-  const splitLabelOpacity = useTransform(progress, [0.16, 0.26, 0.72, 0.82], [0, 1, 1, 0]);
-  const verifyOpacity = useTransform(progress, [0.76, 0.9, 1], [0, 1, 1]);
-  const verifyY = useTransform(progress, [0.76, 0.9], [8, 0]);
-  const progressScale = useTransform(progress, [0.04, 0.94], [0, 1]);
+  const trunkLength = useTransform(progress, [0.055, 0.235], [0, 1]);
+  const trunkOpacity = useTransform(progress, [0.035, 0.13, 0.235], [0.1, 0.7, 0.95]);
+  const splitterOpacity = useTransform(progress, [0.16, 0.245, 0.8], [0, 1, 1]);
+  const splitterScale = useTransform(progress, [0.16, 0.245], [0.42, 1]);
+  const sourceOpacity = useTransform(progress, [0, 0.24, 0.42, 0.84], [1, 1, 0.5, 0.3]);
+  const sourceScale = useTransform(progress, [0, 0.24, 0.42], [1, 1, 0.95]);
+  const splitLabelOpacity = useTransform(progress, [0.15, 0.27, 0.74, 0.84], [0, 1, 1, 0]);
+  const verifyOpacity = useTransform(progress, [0.79, 0.93, 1], [0, 1, 1]);
+  const verifyY = useTransform(progress, [0.79, 0.93], [9, 0]);
+  const progressScale = useTransform(progress, [0.03, 0.95], [0, 1]);
 
-  const personal = useChunkMotion(progress, 0.25, 0.49, "22%" );
-  const projects = useChunkMotion(progress, 0.32, 0.59, "50%" );
-  const archive = useChunkMotion(progress, 0.39, 0.69, "78%" );
+  const personal = useChunkMotion(progress, 0.22, 0.52, "22%");
+  const projects = useChunkMotion(progress, 0.29, 0.63, "50%");
+  const archive = useChunkMotion(progress, 0.36, 0.74, "78%");
   const motions = [personal, projects, archive] as const;
 
   const pathData = [
