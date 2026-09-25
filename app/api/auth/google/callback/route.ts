@@ -15,16 +15,8 @@ export async function GET(request: NextRequest) {
     const state = request.cookies.get("meshly_oauth_state")?.value;
     const verifier = request.cookies.get("meshly_oauth_verifier")?.value;
     const mode = (request.cookies.get("meshly_oauth_mode")?.value === "full" ? "full" : "managed") as GoogleMode;
+    const targetAccountId = request.cookies.get("meshly_oauth_target")?.value;
     if (!code || !state || !verifier || returnedState !== state) return fail("oauth_state_invalid");
-
-    const tokens = await exchangeGoogleCode(code, verifier);
-    const [profile, about, folderId] = await Promise.all([
-      getGoogleProfile(tokens.access_token),
-      getDriveAbout(tokens.access_token),
-      ensureMeshlyFolder(tokens.access_token),
-    ]);
-    const db = getDb();
-    const globallyLinked = (await db.select().from(linkedAccounts).where(eq(linkedAccounts.googleSubject, profile.sub)).limit(1))[0];
 
     let userId: string | undefined;
     const existingSession = request.cookies.get("meshly_session")?.value;
@@ -32,10 +24,27 @@ export async function GET(request: NextRequest) {
       try {
         userId = (await verifySessionToken(existingSession)).userId;
       } catch {
-        // A stale browser session should not block a fresh Google sign-in.
+        // A stale session should not block an ordinary fresh sign-in.
       }
     }
 
+    const db = getDb();
+    let targetedAccount: typeof linkedAccounts.$inferSelect | undefined;
+    if (targetAccountId) {
+      if (!userId) return fail("session_required_for_account_upgrade");
+      targetedAccount = (await db.select().from(linkedAccounts).where(and(eq(linkedAccounts.id, targetAccountId), eq(linkedAccounts.userId, userId))).limit(1))[0];
+      if (!targetedAccount) return fail("oauth_target_invalid");
+    }
+
+    const tokens = await exchangeGoogleCode(code, verifier);
+    const [profile, about, folderId] = await Promise.all([
+      getGoogleProfile(tokens.access_token),
+      getDriveAbout(tokens.access_token),
+      ensureMeshlyFolder(tokens.access_token),
+    ]);
+    if (targetedAccount && targetedAccount.googleSubject !== profile.sub) return fail("wrong_google_account_selected");
+
+    const globallyLinked = (await db.select().from(linkedAccounts).where(eq(linkedAccounts.googleSubject, profile.sub)).limit(1))[0];
     if (userId && globallyLinked && globallyLinked.userId !== userId) return fail("google_account_already_linked");
 
     if (!userId && globallyLinked) {
@@ -54,7 +63,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const old = (await db.select().from(linkedAccounts).where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.googleSubject, profile.sub))).limit(1))[0];
+    const old = targetedAccount ?? (await db.select().from(linkedAccounts).where(and(eq(linkedAccounts.userId, userId), eq(linkedAccounts.googleSubject, profile.sub))).limit(1))[0];
     const refreshTokenEncrypted = tokens.refresh_token ? encryptSecret(tokens.refresh_token) : old?.refreshTokenEncrypted;
     if (!refreshTokenEncrypted) return fail("refresh_token_missing");
 
@@ -100,7 +109,7 @@ export async function GET(request: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });
-    for (const name of ["meshly_oauth_state", "meshly_oauth_verifier", "meshly_oauth_mode"]) response.cookies.set(name, "", { path: "/", maxAge: 0 });
+    for (const name of ["meshly_oauth_state", "meshly_oauth_verifier", "meshly_oauth_mode", "meshly_oauth_target"]) response.cookies.set(name, "", { path: "/", maxAge: 0 });
     return response;
   } catch (error) {
     console.error("OAuth callback failed", error);
