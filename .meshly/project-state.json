@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "project": "Meshly",
+  "repository": "cassielxyz/Meshly",
+  "branch": "main",
+  "phase": "credentials_deployment_real_integration_verification",
+  "status": "production_code_complete_pending_credentialed_integration",
+  "checkpointDate": "2026-09-26",
+  "generatedFromCommit": "d58a0b39d2da6d1d0f17e64e106f3a2ab228a094",
+  "lastVerifiedRuntimeCommit": "2866cfaa8fb9c16d0c28a63a97a6e52eb1fd460a",
+  "requiredReads": [
+    "AGENTS.md",
+    "CHECKPOINT.md",
+    ".meshly/project-state.json",
+    "docs/checkpoints/README.md",
+    "DEPLOYMENT.md"
+  ],
+  "completed": [
+    "drive_style_responsive_ui",
+    "live_logical_filesystem",
+    "folder_and_file_crud",
+    "multi_account_quota_pool",
+    "whole_file_first_placement",
+    "cross_account_byte_range_splitting",
+    "incremental_sha256_upload_hashing",
+    "google_resumable_upload_sessions",
+    "upload_commit_verification",
+    "multipart_range_download_reconstruction",
+    "managed_google_oauth_mode",
+    "full_drive_indexing_code",
+    "account_health_and_sync",
+    "secure_public_sharing",
+    "integrity_scanning",
+    "signed_recovery_manifests",
+    "recovery_restore_path",
+    "encrypted_refresh_tokens",
+    "same_origin_mutation_guard",
+    "health_and_readiness_endpoints",
+    "scheduled_maintenance",
+    "database_migrations",
+    "production_deployment_documentation"
+  ],
+  "verifiedByCI": [
+    "dependency_install",
+    "eslint",
+    "strict_typescript",
+    "vitest",
+    "next_production_build"
+  ],
+  "pendingIntegration": [
+    "production_postgres_migration",
+    "real_google_oauth_login_callback",
+    "two_plus_real_google_accounts",
+    "real_quota_pooling",
+    "small_file_round_trip",
+    "forced_cross_account_file_round_trip_with_sha256_match",
+    "interrupted_resumable_upload_test",
+    "full_drive_scope_index_and_change_sync",
+    "real_chunk_integrity_scan",
+    "recovery_snapshot_and_restore_rehearsal",
+    "deployed_share_link_controls",
+    "vercel_cron_authentication",
+    "desktop_and_mobile_deployment_smoke_test"
+  ],
+  "nextActions": [
+    "provision_tls_postgres",
+    "configure_all_env_values_from_dot_env_example",
+    "run_pnpm_db_migrate",
+    "deploy_main",
+    "verify_api_health_and_readiness",
+    "execute_DEPLOYMENT_md_real_integration_checklist",
+    "force_cross_account_file_and_compare_original_download_sha256",
+    "run_integrity_and_recovery_rehearsal",
+    "verify_sharing_and_maintenance",
+    "patch_only_failures_found_by_real_tests",
+    "rerun_full_verification_gate",
+    "update_checkpoint_to_production_verified_and_create_release"
+  ],
+  "externalConstraints": [
+    "full_drive_mode_requires_applicable_google_oauth_verification_before_public_broad_scope_use"
+  ],
+  "invariants": [
+    "do_not_restart_completed_product_build",
+    "repository_newer_than_checkpoint_wins",
+    "never_publish_logical_file_before_all_required_parts_verify",
+    "never_disconnect_account_while_managed_chunks_depend_on_it",
+    "never_commit_or_log_credentials_or_upload_session_urls",
+    "managed_mode_is_default_narrow_scope_mode",
+    "checkpoint_must_distinguish_ci_verified_from_real_integration_verified"
+  ]
+}
