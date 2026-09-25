@@ -6,8 +6,8 @@
   "phase": "credentials_deployment_real_integration_verification",
   "status": "production_code_and_preflight_tooling_complete_pending_credentialed_integration",
   "checkpointDate": "2026-09-26",
-  "generatedFromCommit": "92549c6dd709f1b94849efb34c1bf4ffc65cd7de",
-  "lastVerifiedRuntimeCommit": "92549c6dd709f1b94849efb34c1bf4ffc65cd7de",
+  "generatedFromCommit": "5ae4c686c6becda098b7df3ace5d79c873e381b0",
+  "lastVerifiedRuntimeCommit": "5ae4c686c6becda098b7df3ace5d79c873e381b0",
   "requiredReads": [
     "AGENTS.md",
     "CHECKPOINT.md",
@@ -42,6 +42,7 @@
     "database_migrations",
     "production_deployment_documentation",
     "production_preflight_harness",
+    "production_preflight_managed_scope_and_callback_validation",
     "credentialed_integration_test_matrix",
     "release_readiness_evidence_gate",
     "durable_ai_checkpoint_protocol"
