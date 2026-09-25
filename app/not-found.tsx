@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { FileQuestion } from "lucide-react";
+import { MeshlyLogo } from "@/components/brand/meshly-logo";
+export default function NotFound(){return <main className="grid min-h-screen place-items-center bg-[var(--surface)] p-6"><div className="max-w-lg text-center"><MeshlyLogo className="mx-auto justify-center"/><div className="mx-auto mt-10 grid h-20 w-20 place-items-center rounded-[28px] bg-white shadow-sm"><FileQuestion size={36}/></div><h1 className="mt-7 text-4xl font-semibold tracking-[-.04em]">We can’t find that item.</h1><p className="mt-3 text-[var(--muted)]">The file, folder or Meshly page may have moved, been removed, or never existed.</p><Link href="/drive" className="focus-ring mt-7 inline-flex rounded-full bg-[var(--blue)] px-6 py-3 text-sm font-semibold text-white">Back to My Drive</Link></div></main>}

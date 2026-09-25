@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #202124;
+  --muted: #5f6368;
+  --surface: #f8fafd;
+  --surface-strong: #f0f4f9;
+  --border: #e1e5ea;
+  --blue: #0b57d0;
+  --blue-soft: #c2e7ff;
+  --green: #34a853;
+  --yellow: #fbbc04;
+  --red: #ea4335;
+  --radius: 18px;
+}
+
+.dark {
+  --background: #111315;
+  --foreground: #e8eaed;
+  --muted: #bdc1c6;
+  --surface: #1b1f22;
+  --surface-strong: #24292e;
+  --border: #343a40;
+  --blue: #a8c7fa;
+  --blue-soft: #0842a0;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Inter, Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-rendering: optimizeLegibility;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+::selection { background: #c2e7ff; color: #001d35; }
+
+.mesh-card {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--background) 92%, var(--surface));
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(60,64,67,.08);
+}
+
+.focus-ring:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 35%, transparent); outline-offset: 2px; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c7cdd4 transparent; }
+.gradient-mesh {
+  background:
+    radial-gradient(circle at 15% 30%, rgba(66,133,244,.14), transparent 34%),
+    radial-gradient(circle at 75% 18%, rgba(52,168,83,.12), transparent 32%),
+    radial-gradient(circle at 70% 78%, rgba(251,188,4,.12), transparent 30%),
+    radial-gradient(circle at 24% 82%, rgba(234,67,53,.09), transparent 28%);
+}

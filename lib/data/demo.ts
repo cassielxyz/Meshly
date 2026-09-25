@@ -1,0 +1,3 @@
+export const demoFolders=[{name:"Projects",items:8},{name:"Photos",items:31},{name:"Backups",items:5},{name:"Documents",items:14}];
+export const demoFiles=[{name:"Project-backup.zip",kind:"archive",size:"4.0 GB",modified:"Today",storage:"2 accounts"},{name:"Resume.pdf",kind:"document",size:"1.8 MB",modified:"Today",storage:"Account A"},{name:"Brand-assets.zip",kind:"archive",size:"720 MB",modified:"Yesterday",storage:"Account B"},{name:"cover-photo.png",kind:"image",size:"12.4 MB",modified:"Sep 23",storage:"Account C"}];
+export const demoAccounts=[{email:"primary•••@gmail.com",used:"11.2",free:"3.8",percent:75},{email:"storage•••@gmail.com",used:"6.4",free:"8.6",percent:43},{email:"backup•••@gmail.com",used:"2.1",free:"12.9",percent:14}];
