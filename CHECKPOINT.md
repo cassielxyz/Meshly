@@ -5,14 +5,14 @@
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime/UI commit:** `53c251f72912ca8fc24f93501dd23cfbf44fa9df`  
-**Latest milestone record:** `docs/checkpoints/2026-09-26-scroll-scrubbed-placement-split-complete.md`
+**Latest verified runtime/UI commit:** `18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db`  
+**Latest milestone record:** `docs/checkpoints/2026-09-26-public-dark-mode-source-credit-complete.md`
 
 ## Current project state
 
 Meshly is production-code complete and is now in the **credentials + deployment + real integration verification** phase.
 
-Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, interactive demo, landing-motion redesign, editorial hero treatment, or the Live Placement Map. Newer repository commits always take precedence over this checkpoint.
+Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, interactive demo, landing-motion redesign, editorial hero treatment, scroll-scrubbed Live Placement Map, public dark mode, source control, or footer credit work. Newer repository commits always take precedence over this checkpoint.
 
 ## Completed in code
 
@@ -32,7 +32,7 @@ Do **not** restart the product build, storage engine, security hardening, produc
 - Motion is transform/opacity-first with `prefers-reduced-motion` fallbacks.
 - Hero subtitle `One Meshly workspace.` uses Bodoni Moda italic editorial typography with a soft pink → lavender gradient, tuned tracking/line-height and restrained glow.
 - Live Placement Map has aligned header text, balanced control placement and equal destination-card geometry.
-- The placement story is now **true scroll-scrubbed motion**, not viewport-triggered autoplay or a time loop.
+- The placement story is true scroll-scrubbed motion, not viewport-triggered autoplay or a time loop.
 - Scroll progress is derived from the actual `#architecture` section travel distance.
 - The 14.2 GB source file stays whole first, then a trunk path draws to a split node.
 - Three branches draw progressively as the user scrolls.
@@ -40,8 +40,13 @@ Do **not** restart the product build, storage engine, security hardening, produc
 - Destination cards react as each range arrives.
 - The final `3 ranges placed · SHA-256 verified` state appears only near the end of the scroll sequence.
 - Scrolling backward reverses the entire split sequence naturally.
-- The old continuously looping placement particles were removed from this story.
 - Reduced-motion users see a stable completed placement state without scrubbed animation.
+- Public routes now support a persistent light/dark toggle with local preference storage and system-dark fallback.
+- Landing/demo dark mode uses dedicated polished surface, border, grid, glow and gradient overrides while preserving Meshly’s existing authenticated dark tokens.
+- Public pages include a compact adaptive top GitHub `View source` control linked to `https://github.com/cassielxyz/Meshly`.
+- Public pages include a footer credit: `Built with curiosity, shipped with care — cassiel.`
+- Footer credit links to the full GitHub profile `https://github.com/cassielxyz` with a GitHub icon.
+- Mobile keeps the source/theme controls below the sticky header; desktop keeps them compact in the top chrome.
 
 ### Storage engine
 
@@ -94,7 +99,7 @@ Do **not** restart the product build, storage engine, security hardening, produc
 
 ## Verification already completed
 
-GitHub Actions run `36197309247` for runtime/UI commit `53c251f72912ca8fc24f93501dd23cfbf44fa9df` passed:
+GitHub Actions run `36198114419` for runtime/UI commit `18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -104,7 +109,9 @@ GitHub Actions run `36197309247` for runtime/UI commit `53c251f72912ca8fc24f9350
 - Vitest: **PASS**
 - optimized Next.js production build: **PASS**
 
-This verified state includes the Bodoni editorial hero treatment and the new reversible, real-scroll-scrubbed Live Placement Map split animation.
+This verified state includes the editorial hero, reversible real-scroll placement animation, public dark mode, persistent theme toggle, top GitHub source control and cassiel footer/profile credit.
+
+An earlier implementation of the theme toggle was correctly rejected by the React Hooks lint rule for synchronously setting React state inside an effect. It was replaced with a state-free DOM-synchronized implementation before the verified run above.
 
 ## NOT yet proven with real production credentials
 
@@ -122,7 +129,7 @@ These are integration/deployment tasks, not missing product code:
 - Recovery snapshot and restore rehearsal.
 - Deployed share password/expiry/download-limit/revocation flow.
 - Vercel cron with real `CRON_SECRET`.
-- Desktop/mobile deployed UX smoke test, including `/`, `/demo`, editorial hero, true scroll-scrubbed placement animation, reduced-motion mode and scroll smoothness.
+- Desktop/mobile deployed UX smoke test, including `/`, `/demo`, dark mode, source controls, footer credit, editorial hero, true scroll-scrubbed placement animation, reduced-motion mode and scroll smoothness.
 
 ## Next actions — do these in order
 
@@ -135,7 +142,7 @@ These are integration/deployment tasks, not missing product code:
 7. Force one test file to span at least two Google accounts, download it and compare whole-file SHA-256.
 8. Run Integrity and Recovery rehearsals.
 9. Verify public sharing and scheduled maintenance.
-10. Smoke-test desktop and mobile, including landing/demo animations, editorial typography, scroll-controlled split timing and reduced-motion behavior.
+10. Smoke-test desktop and mobile, including landing/demo animations, light/dark toggle persistence, source link, cassiel footer/profile link, editorial typography, scroll-controlled split timing and reduced-motion behavior.
 11. Run `pnpm release:check` and `pnpm verify`.
 12. Fix only failures found by real testing, rerunning the relevant test and full gate after each fix.
 13. When all required credential-dependent tests pass, update this checkpoint to **production verified** and create the release/tag.
