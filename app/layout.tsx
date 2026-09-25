@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
+import { Bodoni_Moda } from "next/font/google";
 import "./globals.css";
+
+const bodoni = Bodoni_Moda({
+  subsets: ["latin"],
+  style: ["italic"],
+  weight: ["500", "600"],
+  display: "swap",
+  variable: "--font-bodoni",
+});
 
 export const metadata: Metadata = {
   title: { default: "Meshly", template: "%s · Meshly" },
@@ -10,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={bodoni.variable}>
       <body>{children}</body>
     </html>
   );
