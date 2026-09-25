@@ -103,6 +103,21 @@ button:disabled { cursor: default; }
     radial-gradient(circle at 24% 82%, rgba(234,67,53,.09), transparent 28%);
 }
 
+.meshly-editorial-gradient {
+  display: inline-block;
+  padding-inline: .035em;
+  font-family: var(--font-bodoni), "Bodoni 72", "Bodoni MT", Didot, serif;
+  font-style: italic;
+  font-weight: 500;
+  line-height: .94;
+  letter-spacing: -.045em;
+  background: linear-gradient(100deg, #f6c6e4 0%, #edb8ef 36%, #dda1ec 67%, #c986df 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 12px 38px rgba(207,139,227,.12);
+}
+
 .hero-grid {
   background-image:
     linear-gradient(rgba(32,33,36,.035) 1px, transparent 1px),
@@ -127,6 +142,23 @@ button:disabled { cursor: default; }
   background-size: 48px 48px, 48px 48px, auto;
 }
 
+.placement-map-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(circle at 58% 48%, #000 22%, transparent 88%);
+}
+
+.placement-flow-path {
+  animation: meshly-flow-dash 1.8s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+@keyframes meshly-flow-dash {
+  to { stroke-dashoffset: -36; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
@@ -135,4 +167,5 @@ button:disabled { cursor: default; }
     animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
+  .placement-flow-path { animation: none !important; }
 }
