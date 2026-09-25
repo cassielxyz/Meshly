@@ -1,0 +1,37 @@
+name: Refresh pnpm lockfile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - .github/workflows/generate-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Refresh lockfile
+        run: pnpm install --lockfile-only
+      - name: Commit lockfile
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml is already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "build: refresh lockfile for patched drizzle orm"
+          git push
