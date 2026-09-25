@@ -9,3 +9,5 @@ out/
 .DS_Store
 .vercel/
 coverage/
+.meshly/preflight-report.json
+.meshly/integration-results.json
