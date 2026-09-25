@@ -4,15 +4,15 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "credentials_deployment_real_integration_verification",
-  "status": "production_code_preflight_security_demo_and_visual_polish_complete_pending_credentialed_integration",
+  "status": "production_code_preflight_security_demo_visual_polish_and_scroll_scrubbed_placement_complete_pending_credentialed_integration",
   "checkpointDate": "2026-09-26",
-  "generatedFromCommit": "5fd8a25c01e498ed09aff5f84ba8b0745d5b5404",
-  "lastVerifiedRuntimeCommit": "5fd8a25c01e498ed09aff5f84ba8b0745d5b5404",
+  "generatedFromCommit": "53c251f72912ca8fc24f93501dd23cfbf44fa9df",
+  "lastVerifiedRuntimeCommit": "53c251f72912ca8fc24f93501dd23cfbf44fa9df",
   "requiredReads": [
     "AGENTS.md",
     "CHECKPOINT.md",
     ".meshly/project-state.json",
-    "docs/checkpoints/2026-09-26-editorial-hero-placement-map-polish-complete.md",
+    "docs/checkpoints/2026-09-26-scroll-scrubbed-placement-split-complete.md",
     "DEPLOYMENT.md",
     "PRODUCTION_TESTING.md"
   ],
@@ -61,8 +61,13 @@
     "bodoni_editorial_hero_typography",
     "pink_lavender_hero_gradient",
     "rebuilt_live_placement_map",
-    "animated_split_flow_paths_and_particles",
-    "aligned_placement_destination_cards"
+    "aligned_placement_destination_cards",
+    "true_scroll_scrubbed_placement_animation",
+    "reversible_scroll_split_sequence",
+    "scroll_driven_branch_path_reveal",
+    "scroll_driven_range_chip_travel",
+    "scroll_driven_destination_arrival_states",
+    "scroll_driven_final_sha256_verified_state"
   ],
   "verifiedByCI": [
     "modern_github_actions_setup",
@@ -74,7 +79,8 @@
     "vitest",
     "next_production_build",
     "interactive_demo_and_scroll_motion_build",
-    "editorial_hero_and_live_placement_map_build"
+    "editorial_hero_and_live_placement_map_build",
+    "true_scroll_scrubbed_placement_map_build"
   ],
   "pendingIntegration": [
     "production_postgres_migration",
@@ -91,7 +97,7 @@
     "deployed_share_link_controls",
     "vercel_cron_authentication",
     "desktop_and_mobile_deployment_smoke_test",
-    "deployed_landing_demo_and_placement_motion_smoke_test"
+    "deployed_landing_demo_editorial_and_scroll_scrubbed_placement_smoke_test"
   ],
   "nextActions": [
     "provision_tls_postgres",
@@ -103,7 +109,7 @@
     "force_cross_account_file_and_compare_original_download_sha256",
     "run_integrity_and_recovery_rehearsal",
     "verify_sharing_and_maintenance",
-    "run_desktop_and_mobile_smoke_tests_including_editorial_hero_and_placement_motion",
+    "run_desktop_and_mobile_smoke_tests_including_editorial_hero_and_scroll_scrubbed_placement_motion",
     "run_pnpm_release_check",
     "rerun_pnpm_verify",
     "patch_only_failures_found_by_real_tests",
@@ -116,7 +122,9 @@
     "do_not_restart_completed_product_build",
     "do_not_restart_completed_preflight_tooling",
     "do_not_rebuild_interactive_demo_without_a_verified_issue",
-    "do_not_rebuild_editorial_hero_or_live_placement_map_without_a_verified_issue",
+    "do_not_rebuild_editorial_hero_or_scroll_scrubbed_live_placement_map_without_a_verified_issue",
+    "placement_story_must_be_driven_by_real_scroll_progress_not_time_looping",
+    "scrolling_backward_must_reverse_the_placement_sequence",
     "repository_newer_than_checkpoint_wins",
     "never_publish_logical_file_before_all_required_parts_verify",
     "never_disconnect_account_while_managed_chunks_depend_on_it",
