@@ -190,6 +190,10 @@ button:disabled { cursor: default; }
   mask-image: radial-gradient(circle at 58% 48%, #000 22%, transparent 88%);
 }
 
+#architecture {
+  min-height: 240vh !important;
+}
+
 /* Public marketing/demo dark surfaces. The authenticated workspace already uses semantic theme tokens. */
 .dark body[data-meshly-public="true"] [class*="bg-white"] {
   background-color: color-mix(in srgb, var(--surface) 92%, transparent) !important;
@@ -232,9 +236,34 @@ button:disabled { cursor: default; }
   color: #172033 !important;
 }
 
+body[data-meshly-public="true"] main > footer {
+  display: none;
+}
+
+.public-top-tools {
+  isolation: isolate;
+}
+
 .public-credit-footer {
   position: relative;
   z-index: 10;
+}
+
+.public-credit-quote {
+  margin: 0;
+  font-family: var(--font-bodoni), "Bodoni 72", "Bodoni MT", Didot, serif;
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+
+@media (min-width: 1024px) {
+  #architecture {
+    min-height: 280vh !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
