@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
@@ -16,14 +17,15 @@
 }
 
 .dark {
-  --background: #111315;
-  --foreground: #e8eaed;
-  --muted: #bdc1c6;
-  --surface: #1b1f22;
-  --surface-strong: #24292e;
-  --border: #343a40;
+  --background: #0f1115;
+  --foreground: #eef1f4;
+  --muted: #aeb5bf;
+  --surface: #171b20;
+  --surface-strong: #20262d;
+  --border: #303740;
   --blue: #a8c7fa;
-  --blue-soft: #0842a0;
+  --blue-soft: #183c6c;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -36,6 +38,7 @@ body {
   font-family: Inter, Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  transition: background-color .24s ease, color .24s ease;
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -55,6 +58,11 @@ button:disabled { cursor: default; }
   box-shadow: 0 24px 80px rgba(60,64,67,.13), 0 2px 8px rgba(60,64,67,.06);
   transform: translateZ(0);
   backface-visibility: hidden;
+}
+
+.dark .product-window {
+  border-color: var(--border);
+  box-shadow: 0 28px 90px rgba(0,0,0,.34), 0 2px 8px rgba(0,0,0,.24);
 }
 
 .btn {
@@ -103,6 +111,15 @@ button:disabled { cursor: default; }
     radial-gradient(circle at 24% 82%, rgba(234,67,53,.09), transparent 28%);
 }
 
+.dark .gradient-mesh {
+  background:
+    radial-gradient(circle at 15% 30%, rgba(98,155,255,.14), transparent 34%),
+    radial-gradient(circle at 75% 18%, rgba(81,194,119,.10), transparent 32%),
+    radial-gradient(circle at 70% 78%, rgba(251,188,4,.07), transparent 30%),
+    radial-gradient(circle at 24% 82%, rgba(224,106,132,.08), transparent 28%),
+    #0f1115;
+}
+
 .meshly-editorial-gradient {
   display: inline-block;
   padding-inline: .035em;
@@ -118,12 +135,26 @@ button:disabled { cursor: default; }
   text-shadow: 0 12px 38px rgba(207,139,227,.12);
 }
 
+.dark .meshly-editorial-gradient {
+  background: linear-gradient(100deg, #ffd8ee 0%, #efb8f3 38%, #d8a4ff 70%, #b890f5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 14px 42px rgba(213,157,255,.16);
+}
+
 .hero-grid {
   background-image:
     linear-gradient(rgba(32,33,36,.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(32,33,36,.035) 1px, transparent 1px);
   background-size: 52px 52px;
   mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 78%);
+}
+
+.dark .hero-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
 }
 
 .deep-grid {
@@ -142,6 +173,15 @@ button:disabled { cursor: default; }
   background-size: 48px 48px, 48px 48px, auto;
 }
 
+.dark .demo-grid {
+  background:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(92,149,255,.11), transparent 42%),
+    #0f1115;
+  background-size: 48px 48px, 48px 48px, auto, auto;
+}
+
 .placement-map-grid {
   background-image:
     linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
@@ -150,13 +190,51 @@ button:disabled { cursor: default; }
   mask-image: radial-gradient(circle at 58% 48%, #000 22%, transparent 88%);
 }
 
-.placement-flow-path {
-  animation: meshly-flow-dash 1.8s linear infinite;
-  will-change: stroke-dashoffset;
+/* Public marketing/demo dark surfaces. The authenticated workspace already uses semantic theme tokens. */
+.dark body[data-meshly-public="true"] [class*="bg-white"] {
+  background-color: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+}
+.dark body[data-meshly-public="true"] [class*="bg-[#f8fafd]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#f0f4f9]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#f5f7fb]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#f2f6fc]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#eef3fb]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#edf1f5]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#e1e5ea]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#e1e6ed]"] {
+  background-color: var(--surface-strong) !important;
+}
+.dark body[data-meshly-public="true"] [class*="bg-[#c2e7ff]"] {
+  background-color: var(--blue-soft) !important;
+}
+.dark body[data-meshly-public="true"] [class*="bg-[#e8f0fe]"] {
+  background-color: rgba(83,137,230,.18) !important;
+}
+.dark body[data-meshly-public="true"] [class*="bg-[#f5fbf7]"],
+.dark body[data-meshly-public="true"] [class*="bg-[#e6f4ea]"] {
+  background-color: rgba(52,168,83,.14) !important;
+}
+.dark body[data-meshly-public="true"] [class*="border-[#d"],
+.dark body[data-meshly-public="true"] [class*="border-[#e"],
+.dark body[data-meshly-public="true"] [class*="border-black"] {
+  border-color: var(--border) !important;
+}
+.dark body[data-meshly-public="true"] [class*="text-[#5f6368]"] {
+  color: var(--muted) !important;
+}
+.dark body[data-meshly-public="true"] .placement-shell [class*="bg-white/"] {
+  background-color: rgba(255,255,255,.055) !important;
+}
+.dark body[data-meshly-public="true"] .placement-shell .bg-white {
+  background-color: #fff !important;
+}
+.dark body[data-meshly-public="true"] .placement-shell .text-\[\#172033\] {
+  color: #172033 !important;
 }
 
-@keyframes meshly-flow-dash {
-  to { stroke-dashoffset: -36; }
+.public-credit-footer {
+  position: relative;
+  z-index: 10;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -167,5 +245,4 @@ button:disabled { cursor: default; }
     animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
-  .placement-flow-path { animation: none !important; }
 }
