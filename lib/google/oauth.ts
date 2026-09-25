@@ -1,12 +1,71 @@
 import { createHash, randomBytes } from "node:crypto";
 
-export type GoogleMode="managed"|"full";
-const APPDATA_SCOPE="https://www.googleapis.com/auth/drive.appdata";
-const MANAGED_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive.file",APPDATA_SCOPE];
-const FULL_SCOPES=["openid","email","profile","https://www.googleapis.com/auth/drive",APPDATA_SCOPE];
-function config(){const clientId=process.env.GOOGLE_CLIENT_ID;const clientSecret=process.env.GOOGLE_CLIENT_SECRET;const redirectUri=process.env.GOOGLE_REDIRECT_URI;if(!clientId||!clientSecret||!redirectUri)throw new Error("Google OAuth is not configured");return{clientId,clientSecret,redirectUri};}
-export function createPkce(){const verifier=randomBytes(48).toString("base64url");const challenge=createHash("sha256").update(verifier).digest("base64url");return{verifier,challenge};}
-export function buildGoogleAuthorizationUrl({state,challenge,mode}:{state:string;challenge:string;mode:GoogleMode}){const {clientId,redirectUri}=config();const url=new URL("https://accounts.google.com/o/oauth2/v2/auth");url.search=new URLSearchParams({client_id:clientId,redirect_uri:redirectUri,response_type:"code",scope:(mode==="full"?FULL_SCOPES:MANAGED_SCOPES).join(" "),access_type:"offline",prompt:"consent",include_granted_scopes:"true",state,code_challenge:challenge,code_challenge_method:"S256"}).toString();return url.toString();}
-export async function exchangeGoogleCode(code:string,verifier:string){const {clientId,clientSecret,redirectUri}=config();const response=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,grant_type:"authorization_code",code_verifier:verifier}),cache:"no-store"});if(!response.ok)throw new Error(`Google token exchange failed (${response.status})`);return response.json() as Promise<{access_token:string;expires_in:number;refresh_token?:string;scope:string;token_type:string;id_token?:string}>;}
-export async function refreshGoogleAccessToken(refreshToken:string){const {clientId,clientSecret}=config();const response=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,refresh_token:refreshToken,grant_type:"refresh_token"}),cache:"no-store"});if(!response.ok)throw new Error(`Google token refresh failed (${response.status})`);const data=await response.json() as {access_token:string;expires_in:number};return data.access_token;}
-export async function getGoogleProfile(accessToken:string){const response=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{authorization:`Bearer ${accessToken}`},cache:"no-store"});if(!response.ok)throw new Error("Unable to read Google profile");return response.json() as Promise<{sub:string;email:string;name?:string;picture?:string}>;}
+export type GoogleMode = "managed" | "full";
+const APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const MANAGED_SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file", APPDATA_SCOPE];
+const FULL_SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive", APPDATA_SCOPE];
+
+function config() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  if (!clientId || !clientSecret || !redirectUri) throw new Error("Google OAuth is not configured");
+  return { clientId, clientSecret, redirectUri };
+}
+
+export function createPkce() {
+  const verifier = randomBytes(48).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  return { verifier, challenge };
+}
+
+export function buildGoogleAuthorizationUrl({ state, challenge, mode, loginHint }: { state: string; challenge: string; mode: GoogleMode; loginHint?: string }) {
+  const { clientId, redirectUri } = config();
+  const parameters: Record<string, string> = {
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: (mode === "full" ? FULL_SCOPES : MANAGED_SCOPES).join(" "),
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    state,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+  };
+  if (loginHint) parameters.login_hint = loginHint;
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.search = new URLSearchParams(parameters).toString();
+  return url.toString();
+}
+
+export async function exchangeGoogleCode(code: string, verifier: string) {
+  const { clientId, clientSecret, redirectUri } = config();
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code", code_verifier: verifier }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Google token exchange failed (${response.status})`);
+  return response.json() as Promise<{ access_token: string; expires_in: number; refresh_token?: string; scope: string; token_type: string; id_token?: string }>;
+}
+
+export async function refreshGoogleAccessToken(refreshToken: string) {
+  const { clientId, clientSecret } = config();
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Google token refresh failed (${response.status})`);
+  const data = (await response.json()) as { access_token: string; expires_in: number };
+  return data.access_token;
+}
+
+export async function getGoogleProfile(accessToken: string) {
+  const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  if (!response.ok) throw new Error("Unable to read Google profile");
+  return response.json() as Promise<{ sub: string; email: string; name?: string; picture?: string }>;
+}
