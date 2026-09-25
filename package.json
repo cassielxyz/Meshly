@@ -1,6 +1,6 @@
 {
   "name": "meshly",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "One workspace for multiple Google Drive storage accounts.",
   "scripts": {
@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "node scripts/migrate.mjs",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
