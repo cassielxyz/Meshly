@@ -77,6 +77,8 @@ Only then update the checkpoint to `production_verified` and create the release/
 - Do not publish a logical file until all physical parts have completed and verified.
 - Keep database backups even though signed recovery manifests can rebuild Meshly-managed metadata.
 - Rotate secrets after any suspected exposure.
+- Keep `pnpm-lock.yaml` committed and use frozen installs for deterministic builds.
+- Do not bypass the production dependency audit to force a release through CI.
 
 ## 7. Code verification command
 
@@ -84,4 +86,4 @@ Only then update the checkpoint to `production_verified` and create the release/
 pnpm verify
 ```
 
-This runs checkpoint validation, lint, strict TypeScript checking, unit tests, and the optimized production build. GitHub Actions runs the same gate on every push and pull request.
+This runs checkpoint validation, the production dependency audit (`pnpm audit --prod --audit-level high`), lint, strict TypeScript checking, unit tests, and the optimized production build. GitHub Actions uses a frozen lockfile and runs the same verification gate on every push and pull request.
