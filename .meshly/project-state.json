@@ -4,15 +4,15 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "credentials_deployment_real_integration_verification",
-  "status": "production_code_preflight_and_security_gate_complete_pending_credentialed_integration",
+  "status": "production_code_preflight_security_and_demo_ui_complete_pending_credentialed_integration",
   "checkpointDate": "2026-09-26",
-  "generatedFromCommit": "731473cb627d85c370f337285e98a33b1cccbef7",
-  "lastVerifiedRuntimeCommit": "731473cb627d85c370f337285e98a33b1cccbef7",
+  "generatedFromCommit": "174cc527b4eda3949860789210e6d39dd8229509",
+  "lastVerifiedRuntimeCommit": "174cc527b4eda3949860789210e6d39dd8229509",
   "requiredReads": [
     "AGENTS.md",
     "CHECKPOINT.md",
     ".meshly/project-state.json",
-    "docs/checkpoints/2026-09-26-reproducible-security-gate-complete.md",
+    "docs/checkpoints/2026-09-26-interactive-demo-motion-polish-complete.md",
     "DEPLOYMENT.md",
     "PRODUCTION_TESTING.md"
   ],
@@ -51,7 +51,13 @@
     "production_dependency_security_audit",
     "drizzle_orm_security_upgrade_0_45_3",
     "modern_github_actions_runtimes",
-    "dependabot_dependency_monitoring"
+    "dependabot_dependency_monitoring",
+    "public_interactive_demo_route",
+    "demo_connect_plan_split_transfer_reconstruct_tour",
+    "landing_scroll_progress_and_reveal_motion",
+    "scroll_driven_storage_placement_story",
+    "reduced_motion_accessibility_fallbacks",
+    "landing_placeholder_and_emoji_artifact_cleanup"
   ],
   "verifiedByCI": [
     "modern_github_actions_setup",
@@ -61,7 +67,8 @@
     "eslint",
     "strict_typescript",
     "vitest",
-    "next_production_build"
+    "next_production_build",
+    "interactive_demo_and_scroll_motion_build"
   ],
   "pendingIntegration": [
     "production_postgres_migration",
@@ -77,7 +84,8 @@
     "recovery_snapshot_and_restore_rehearsal",
     "deployed_share_link_controls",
     "vercel_cron_authentication",
-    "desktop_and_mobile_deployment_smoke_test"
+    "desktop_and_mobile_deployment_smoke_test",
+    "deployed_landing_and_demo_motion_smoke_test"
   ],
   "nextActions": [
     "provision_tls_postgres",
@@ -89,7 +97,7 @@
     "force_cross_account_file_and_compare_original_download_sha256",
     "run_integrity_and_recovery_rehearsal",
     "verify_sharing_and_maintenance",
-    "run_desktop_and_mobile_smoke_tests",
+    "run_desktop_and_mobile_smoke_tests_including_landing_and_demo_motion",
     "run_pnpm_release_check",
     "rerun_pnpm_verify",
     "patch_only_failures_found_by_real_tests",
@@ -101,6 +109,7 @@
   "invariants": [
     "do_not_restart_completed_product_build",
     "do_not_restart_completed_preflight_tooling",
+    "do_not_rebuild_interactive_demo_without_a_verified_issue",
     "repository_newer_than_checkpoint_wins",
     "never_publish_logical_file_before_all_required_parts_verify",
     "never_disconnect_account_while_managed_chunks_depend_on_it",
@@ -109,6 +118,7 @@
     "checkpoint_must_distinguish_ci_verified_from_real_integration_verified",
     "keep_pnpm_lockfile_committed_and_use_frozen_ci_installs",
     "do_not_disable_production_dependency_audit_to_force_release",
-    "do_not_downgrade_drizzle_below_patched_security_line"
+    "do_not_downgrade_drizzle_below_patched_security_line",
+    "respect_prefers_reduced_motion_for_marketing_and_demo_motion"
   ]
 }
