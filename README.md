@@ -17,6 +17,7 @@ If a file safely fits in one healthy account, Meshly keeps it whole. If it does 
 ## Production feature set
 
 - **Live unified filesystem** — folders, file/folder upload, search, list/grid browsing, breadcrumbs, rename, move, copy, star, trash, restore and permanent delete.
+- **Interactive public demo** — `/demo` safely demonstrates account pooling, placement planning, cross-account splitting, resumable upload and verified reconstruction using simulated data only. No credentials are required.
 - **Unified storage pool** — real Drive quota and account health are combined into one storage view.
 - **Whole-file-first placement** — fragmentation happens only when one account cannot safely hold the complete file.
 - **Resumable direct uploads** — the backend creates Google Drive resumable sessions and the browser streams ranges directly to Google instead of proxying multi-GB payloads through Meshly.
@@ -30,9 +31,15 @@ If a file safely fits in one healthy account, Meshly keeps it whole. If it does 
 - **Production security** — encrypted refresh tokens, HttpOnly/SameSite sessions, PKCE/state OAuth, CSP/HSTS/security headers, same-origin mutation enforcement and deployment readiness checks.
 - **Operational UI** — transfers, notifications/activity, accounts, storage, diagnostics, integrity, recovery, profile, help/privacy, settings, error and empty states.
 
+## Product motion
+
+The marketing experience uses Motion for restrained, hardware-friendly transform/opacity animation rather than heavy WebGL effects. The landing page includes scroll progress, staged reveals and a pinned storage-placement story; the interactive demo has an auto-play/manual guided session. `prefers-reduced-motion` is respected throughout.
+
+The motion language is inspired by modern progressive technical-product storytelling while keeping Meshly’s layout, branding, color system and interaction model original.
+
 ## Stack
 
-`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Radix/shadcn-style primitives · `Drizzle ORM 0.45.x` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
+`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Motion · Radix/shadcn-style primitives · `Drizzle ORM` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
 
 ## Quick start
 
@@ -45,7 +52,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. The public demo is available at `http://localhost:3000/demo` without Google credentials.
 
 ## Configuration
 
@@ -73,7 +80,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete credential and launch checkl
 
 ## Product areas
 
-Landing · login · onboarding · My Drive · folders · search · recent · starred · shared · trash · storage pool · connected accounts · transfer center · activity · integrity · recovery · notifications · diagnostics · help · privacy · profile · general/storage/transfer/appearance/security/notification/advanced settings · public share pages · error/404 states.
+Landing · interactive demo · login · onboarding · My Drive · folders · search · recent · starred · shared · trash · storage pool · connected accounts · transfer center · activity · integrity · recovery · notifications · diagnostics · help · privacy · profile · general/storage/transfer/appearance/security/notification/advanced settings · public share pages · error/404 states.
 
 ## Design system
 
@@ -95,7 +102,7 @@ pnpm verify
 
 The production dependency audit rejects high-severity advisories. The current Drizzle ORM line is patched for the SQL-identifier injection advisory affecting versions below `0.45.2`. Dependabot monitors both npm dependencies and GitHub Actions for future updates.
 
-Tests cover storage placement invariants, share-security primitives, and deployment-environment validation. Credential-dependent Google integration behavior is exercised after real OAuth/database credentials are configured.
+The interactive demo and scroll-motion redesign passed the full gate at verified runtime/UI commit `174cc527b4eda3949860789210e6d39dd8229509`.
 
 ## Security
 
@@ -128,7 +135,7 @@ Meshly carries its project state in the repository so a lost ChatGPT/agent sessi
 
 ## Before the first real-user test
 
-The code build and deployment tooling are complete. The remaining launch sequence is:
+The code build, demo, security gate and deployment tooling are complete. The remaining launch sequence is:
 
 1. Provision the production PostgreSQL database with TLS.
 2. Add all environment variables from `.env.example`.
@@ -136,11 +143,12 @@ The code build and deployment tooling are complete. The remaining launch sequenc
 4. Deploy `main` to Vercel/Node 22+.
 5. Run `pnpm production:preflight` and require every check to pass.
 6. Complete [PRODUCTION_TESTING.md](PRODUCTION_TESTING.md), including a forced two-account split/reconstruction SHA-256 test.
-7. Run `pnpm release:check` and `pnpm verify` before creating the production release.
+7. Smoke-test `/` and `/demo` on desktop/mobile, including reduced-motion behavior and animation smoothness.
+8. Run `pnpm release:check` and `pnpm verify` before creating the production release.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Changes to placement, manifests, reconstruction, account removal, sharing or recovery must preserve storage/security invariants and include tests.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes to placement, manifests, reconstruction, account removal, sharing, recovery or motion behavior must preserve storage/security/accessibility invariants and include appropriate verification.
 
 ---
 
