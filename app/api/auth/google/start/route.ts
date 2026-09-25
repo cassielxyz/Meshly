@@ -1,0 +1,4 @@
+import { randomBytes } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { buildGoogleAuthorizationUrl, createPkce, type GoogleMode } from "@/lib/google/oauth";
+export async function GET(request:NextRequest){try{const mode:GoogleMode=request.nextUrl.searchParams.get("mode")==="full"?"full":"managed";const state=randomBytes(24).toString("base64url");const {verifier,challenge}=createPkce();const response=NextResponse.redirect(buildGoogleAuthorizationUrl({state,challenge,mode}));const secure=process.env.NODE_ENV==="production";const options={httpOnly:true,secure,sameSite:"lax" as const,path:"/",maxAge:600};response.cookies.set("meshly_oauth_state",state,options);response.cookies.set("meshly_oauth_verifier",verifier,options);response.cookies.set("meshly_oauth_mode",mode,options);return response;}catch{return NextResponse.redirect(new URL("/login?error=oauth_not_configured",request.url));}}

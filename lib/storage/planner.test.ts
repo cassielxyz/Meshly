@@ -1,0 +1,4 @@
+import { describe, expect, it } from "vitest";
+import { planPlacement } from "./planner";
+const GB=1024*1024*1024;
+describe("planPlacement",()=>{it("keeps a file whole when a node can safely hold it",()=>{expect(planPlacement(4*GB,[{id:"a",freeBytes:5*GB},{id:"b",freeBytes:10*GB}],{reserveBytes:GB/2,maxPartBytes:2*GB})).toEqual([{accountId:"a",offset:0,size:4*GB,part:0}]);});it("spans nodes deterministically when required",()=>{const plan=planPlacement(4*GB,[{id:"a",freeBytes:2.5*GB,priority:1},{id:"b",freeBytes:4*GB,priority:2}],{reserveBytes:GB/2,maxPartBytes:2*GB});expect(plan.reduce((n,p)=>n+p.size,0)).toBe(4*GB);expect(plan[0]).toMatchObject({accountId:"a",offset:0,part:0});expect(plan.at(-1)?.accountId).toBe("b");});it("fails before uploading when pooled capacity is insufficient",()=>{expect(()=>planPlacement(4*GB,[{id:"a",freeBytes:2*GB},{id:"b",freeBytes:2*GB}],{reserveBytes:GB/2})).toThrow(/pooled storage/i);});});
