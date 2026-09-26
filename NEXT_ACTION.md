@@ -4,9 +4,9 @@
 
 ## Do this next
 
-1. Verify the full CI gate on **PR #5 / `work/production-readiness-cleanup`**.
-2. If CI fails, fix the failing gate and verify again.
-3. If CI passes, checkpoint the production-readiness cleanup + public legal pages milestone, run checkpoint-only CI, then merge PR #5.
-4. After merge, the next project phase is production PostgreSQL/OAuth/environment/deployment configuration followed by real encrypted Google Auto/manual round-trip verification.
+1. Verify the checkpoint-only CI on **PR #5 / `work/production-readiness-cleanup`**.
+2. If green, merge PR #5 into `main`.
+3. Continue production PostgreSQL, OAuth/environment configuration and deployment using the secret manager/environment only.
+4. Run automated preflight, then complete the required real encrypted Google Auto/manual round-trip and production integration tests before marking Meshly `production_verified`.
 
-Do not ask the user to paste production secrets into chat or commit them to the repository.
+Never paste production secrets into chat or commit them to the repository.

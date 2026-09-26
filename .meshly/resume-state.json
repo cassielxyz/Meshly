@@ -4,10 +4,10 @@
   "repository": "cassielxyz/Meshly",
   "activeBranch": "work/production-readiness-cleanup",
   "activePullRequest": 5,
-  "resumeStatus": "active_task_verification_pending",
-  "lastStableCheckpoint": "docs/checkpoints/2026-09-27-public-multicloud-encryption-story.md",
-  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
-  "lastVerifiedCiRun": "36268194577",
+  "resumeStatus": "verified_milestone_merge_pending",
+  "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-readiness-cleanup-and-legal-pages.md",
+  "lastVerifiedRuntimeCommit": "71e164814de83d858d744d987b54443ef0019f95",
+  "lastVerifiedCiRun": "36268994840",
   "requiredReads": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -21,16 +21,15 @@
   "resumeProcedure": [
     "inspect_current_main_and_active_branch_heads",
     "inspect_pr_5_and_newest_ci",
-    "fix_only_the_failing_ci_gate_if_needed",
-    "checkpoint_the_verified_cleanup_and_legal_pages_milestone",
-    "verify_checkpoint_only_ci",
-    "merge_pr_5",
-    "continue_production_configuration_and_real_provider_verification"
+    "merge_pr_5_if_checkpoint_only_ci_is_green",
+    "continue_production_database_oauth_environment_and_deployment_configuration",
+    "run_production_preflight_and_required_real_provider_tests",
+    "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Verify the full PR #5 CI; if green checkpoint the cleanup/legal milestone, verify the checkpoint-only commit, and merge.",
+  "exactNextAction": "Verify the checkpoint-only PR #5 CI; if green merge it, then continue production configuration and real encrypted Google integration verification.",
   "notes": [
     "repository_newer_than_checkpoint_files_wins",
     "do_not_ask_the_user_to_reconstruct_lost_chat_context_when_repository_state_is_available",
-    "do_not_store_secrets_in_checkpoint_files"
+    "do_not_store_or_request_production_secrets_in_checkpoint_files_or_chat"
   ]
 }

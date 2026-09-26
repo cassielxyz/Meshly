@@ -5,11 +5,11 @@
   "title": "Remove stale Google sharding guidance and add public legal pages",
   "branch": "work/production-readiness-cleanup",
   "pullRequest": 5,
-  "status": "verification_pending",
+  "status": "milestone_verified_merge_pending",
   "checkpointDate": "2026-09-27",
   "baseMainCommit": "654727bbd4963c1df7f90f721f219bcf3e4db7f3",
-  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
-  "lastVerifiedCiRun": "36268194577",
+  "lastVerifiedRuntimeCommit": "71e164814de83d858d744d987b54443ef0019f95",
+  "lastVerifiedCiRun": "36268994840",
   "completedOnTask": [
     "align_readme_current_status_and_roadmap",
     "update_production_testing_for_encrypted_auto_manual_google_round_trips",
@@ -21,14 +21,14 @@
     "add_legal_links_to_public_footer",
     "update_root_product_metadata",
     "replace_split_google_storage_flow_asset",
-    "refresh_multicloud_encrypted_storage_banner"
+    "refresh_multicloud_encrypted_storage_banner",
+    "full_ci_gate_passed",
+    "checkpoint_verified_milestone"
   ],
   "remaining": [
-    "run_full_pr_ci",
-    "fix_any_ci_failures",
-    "checkpoint_verified_production_readiness_cleanup",
-    "run_checkpoint_only_ci",
-    "merge_pr_5"
+    "verify_checkpoint_only_ci",
+    "merge_pr_5",
+    "continue_production_configuration_and_live_verification"
   ],
   "blockers": [
     "production_credentials_and_database_are_not_configured_for_real_provider_verification"
