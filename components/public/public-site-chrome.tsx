@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Github } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-const publicRoutes = ["/", "/demo", "/login", "/onboarding"] as const;
+const publicRoutes = ["/", "/demo", "/login", "/onboarding", "/privacy", "/terms"] as const;
 
 function isPublicPath(pathname: string) {
   return publicRoutes.some((route) => pathname === route || (route !== "/" && pathname.startsWith(`${route}/`)));
@@ -40,6 +41,11 @@ export function PublicSiteChrome() {
           <Github size={15} />
           github.com/cassielxyz
         </a>
+        <nav aria-label="Legal" className="mt-5 flex items-center gap-4 text-xs font-semibold">
+          <Link href="/privacy" className="focus-ring rounded-full px-2 py-1 transition-colors hover:text-[var(--foreground)]">Privacy</Link>
+          <span aria-hidden="true" className="h-1 w-1 rounded-full bg-[var(--border)]" />
+          <Link href="/terms" className="focus-ring rounded-full px-2 py-1 transition-colors hover:text-[var(--foreground)]">Terms</Link>
+        </nav>
       </div>
     </footer>
   );
