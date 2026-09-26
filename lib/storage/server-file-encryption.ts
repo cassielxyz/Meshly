@@ -1,5 +1,5 @@
 import { createDecipheriv } from "node:crypto";
-import { AES_GCM_TAG_BYTES, frameAad, frameIv } from "@/lib/storage/encryption-format";
+import { AES_GCM_TAG_BYTES, frameAad, frameIv } from "./encryption-format";
 
 export function decryptManagedFrame(input: {
   rawKey: Uint8Array;
