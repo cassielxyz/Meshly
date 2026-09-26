@@ -4,38 +4,46 @@
 
 **Updated:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `work/public-multicloud-encryption-story`  
-**Active PR:** `#4`  
-**Verified runtime commit:** `c4cbebb0541637d1608f7372f9accb45366a5d74`  
-**Verified CI run:** `36268194577`
+**Active branch:** `work/production-readiness-cleanup`  
+**Active PR:** `#5`  
+**Last verified runtime commit:** `c4cbebb0541637d1608f7372f9accb45366a5d74`  
+**Last verified CI run:** `36268194577`
 
 ## Active task
 
-The public multicloud/encrypted-storage story is implemented and the full CI gate has passed. The current branch now contains:
+Production-readiness cleanup after the verified public multicloud/encryption story.
 
-- landing copy/visuals aligned to Google Drives + Other Clouds;
-- Google whole-file Auto/manual destination messaging;
-- encrypt → route → verify scroll story;
-- five-step demo: Connect → Choose destination → Encrypt → Transfer → Verify & ready;
-- demo fixtures that no longer claim a Google-managed file spans accounts;
-- durable active-work checkpoint files in addition to canonical milestone checkpoints.
+Implemented on the active branch:
+
+- README status/roadmap aligned to the current Google whole-file + encrypted managed-file model;
+- production testing no longer asks Google managed files to span accounts;
+- production integration evidence now covers encrypted Auto/manual Google round trips and provider ciphertext inspection;
+- deployment guidance updated for encryption migration `0005`, legal URLs, Auto/manual destination verification, and current invariants;
+- SECURITY documentation expanded for managed-file encryption, backend trust boundaries, and whole-file Google placement;
+- public `/privacy` and `/terms` pages added with reusable legal-page chrome;
+- Privacy/Terms links exposed through the public footer;
+- root product metadata updated away from the old Google-only description;
+- stale split-Google storage-flow documentation asset replaced with encrypted provider-aware placement;
+- README banner refreshed for multi-cloud encrypted storage.
 
 ## Verification state
 
-GitHub Actions run `36268194577` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `c4cbebb0541637d1608f7372f9accb45366a5d74`.
-
-This proves code/CI only. Real production database/OAuth/provider behavior remains pending.
+The implementation is **verification pending** until PR #5 passes the full CI gate. Do not advance the canonical verified milestone in `CHECKPOINT.md` before that succeeds.
 
 ## Exact next action
 
-1. Let the checkpoint-only commit for this verified milestone pass CI.
-2. Merge PR #4 into `main`.
-3. Create/continue the next cleanup task from fresh `main` and scan the product/docs for obsolete public Google pooling/sharding/split-across-accounts claims.
-4. Then add/verify public Privacy + Terms routes/links before production OAuth/deployment configuration.
+1. Run/inspect the newest PR #5 CI on `work/production-readiness-cleanup`.
+2. If any gate fails, fix only the failing issue and verify again.
+3. When frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and production build all pass:
+   - create `docs/checkpoints/2026-09-27-production-readiness-cleanup-and-legal-pages.md`;
+   - advance `CHECKPOINT.md` and `.meshly/project-state.json`;
+   - update the active checkpoint layers;
+   - run the checkpoint-only CI;
+   - merge PR #5.
 
 ## Blockers outside code
 
-Production PostgreSQL, environment/OAuth credentials and live provider verification are not configured yet. Never place those secrets in repository checkpoint files or chat.
+Real production PostgreSQL, production environment/OAuth credentials and deployed provider verification are not configured yet. Never place those secrets in repository checkpoint files, issues, screenshots or chat.
 
 ## Invariants
 

@@ -4,9 +4,9 @@
 
 ## Do this next
 
-1. Verify the checkpoint-only CI run on **PR #4 / `work/public-multicloud-encryption-story`**.
-2. If green, merge PR #4.
-3. From fresh `main`, scan and remove remaining obsolete **public Google pooled/sharded/split-across-accounts** claims while preserving valid generic provider-capability split code/docs.
-4. Next, add/verify public Privacy and Terms pages/links for OAuth and deployment readiness.
+1. Verify the full CI gate on **PR #5 / `work/production-readiness-cleanup`**.
+2. If CI fails, fix the failing gate and verify again.
+3. If CI passes, checkpoint the production-readiness cleanup + public legal pages milestone, run checkpoint-only CI, then merge PR #5.
+4. After merge, the next project phase is production PostgreSQL/OAuth/environment/deployment configuration followed by real encrypted Google Auto/manual round-trip verification.
 
-Do not start live production verification until the cleanup/pre-production web surface is checkpointed.
+Do not ask the user to paste production secrets into chat or commit them to the repository.

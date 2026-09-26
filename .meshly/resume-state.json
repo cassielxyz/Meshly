@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
-  "activeBranch": "work/public-multicloud-encryption-story",
-  "activePullRequest": 4,
-  "resumeStatus": "verified_milestone_merge_pending",
+  "activeBranch": "work/production-readiness-cleanup",
+  "activePullRequest": 5,
+  "resumeStatus": "active_task_verification_pending",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-public-multicloud-encryption-story.md",
   "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
   "lastVerifiedCiRun": "36268194577",
@@ -20,13 +20,14 @@
   ],
   "resumeProcedure": [
     "inspect_current_main_and_active_branch_heads",
-    "inspect_pr_4_and_newest_ci",
-    "merge_pr_4_if_checkpoint_only_ci_is_green",
-    "create_or_continue_cleanup_task_from_fresh_main",
-    "scan_obsolete_public_google_pooling_sharding_claims",
-    "update_all_checkpoint_layers_after_the_next_verified_milestone"
+    "inspect_pr_5_and_newest_ci",
+    "fix_only_the_failing_ci_gate_if_needed",
+    "checkpoint_the_verified_cleanup_and_legal_pages_milestone",
+    "verify_checkpoint_only_ci",
+    "merge_pr_5",
+    "continue_production_configuration_and_real_provider_verification"
   ],
-  "exactNextAction": "Verify the checkpoint-only PR #4 CI; if green merge it, then start stale Google pooling/sharding public-copy cleanup from fresh main.",
+  "exactNextAction": "Verify the full PR #5 CI; if green checkpoint the cleanup/legal milestone, verify the checkpoint-only commit, and merge.",
   "notes": [
     "repository_newer_than_checkpoint_files_wins",
     "do_not_ask_the_user_to_reconstruct_lost_chat_context_when_repository_state_is_available",
