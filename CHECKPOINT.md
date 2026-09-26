@@ -13,25 +13,32 @@
 
 Meshly is **production-code complete** and remains in the **credentials + deployment + real integration verification** phase.
 
-Do **not** restart or rebuild completed product work unless deployed testing proves a real issue. The implementation already includes the unified logical filesystem, multi-account storage pool, cross-account file splitting/reconstruction, resumable Google Drive uploads, recovery/integrity/sharing flows, security hardening, CI, production preflight, interactive demo, dark mode, editorial hero, scroll-scrubbed placement story, footer credit, and durable checkpoint system.
+Do **not** restart or rebuild completed product work unless deployed testing proves a real issue. Newer repository commits always take precedence over this checkpoint.
 
-## Latest UI behavior — locked unless a verified issue appears
+## Completed in code
 
-- `One Meshly workspace.` uses Bodoni Moda italic with the pink → lavender editorial gradient.
-- The Live Placement Map is driven by **real scroll progress**, not a time loop.
-- Scrolling backward reverses the placement sequence.
-- The split animation uses extended scroll distance and softened spring timing for slower, smoother motion.
-- Public light/dark mode is persistent.
-- GitHub/source and theme controls are compact.
-- **GitHub/source and theme controls must live inside the public page header. They must not float fixed over page content.**
+- Unified logical filesystem and multi-account Google Drive storage pool.
+- Whole-file-first allocation plus deterministic cross-account splitting when required.
+- Incremental SHA-256 hashing, Google resumable uploads, commit verification, multipart reconstruction and HTTP Range support.
+- Managed OAuth mode, optional Full Drive indexing, account health/quota refresh and disconnect safeguards.
+- Sharing, integrity scanning, signed recovery manifests and restore paths.
+- Production security hardening, readiness/health endpoints, maintenance cron, migrations, deployment preflight, release checks and CI.
+- Durable AI continuation/checkpoint system.
+- Public interactive `/demo` flow.
+- Bodoni Moda italic `One Meshly workspace.` hero treatment with pink → lavender gradient.
+- Real scroll-scrubbed and reversible Live Placement Map.
+- Extended scroll distance and softened spring timing for slower/smoother placement animation.
+- Persistent public light/dark mode.
+- Compact GitHub source control and cassiel footer/profile credit.
+- Public pages use one centered editorial footer signature.
+- **GitHub/source and theme controls now live inside public headers instead of floating fixed over page content.**
 - Landing and demo controls mount into their existing header action groups.
-- Onboarding and login now have proper headers with Meshly branding on the left and the controls on the right.
+- Onboarding and login now have proper headers with Meshly branding on the left and public controls on the right.
 - Onboarding `Explore demo workspace` routes to `/demo`.
-- Public pages use one centered editorial cassiel footer signature with the GitHub profile link.
 
-## Runtime verification
+## Verification already completed
 
-GitHub Actions run `36245925428` for commit `a832639fc25facc4e666e26adef7bf7cc89009f2` passed:
+GitHub Actions run `36245925428` for runtime/UI commit `a832639fc25facc4e666e26adef7bf7cc89009f2` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -43,7 +50,7 @@ GitHub Actions run `36245925428` for commit `a832639fc25facc4e666e26adef7bf7cc89
 
 This is CI verification only; it is **not yet credentialed production integration verification**.
 
-## Production integration still pending
+## NOT yet proven with real production credentials
 
 - Hosted TLS PostgreSQL + production migration.
 - Production environment variables from `.env.example`.
@@ -61,7 +68,7 @@ This is CI verification only; it is **not yet credentialed production integratio
 - Vercel cron authentication test.
 - Desktop/mobile deployed visual smoke test including header-mounted controls, dark mode, footer signature, editorial hero and slow reversible scroll placement motion.
 
-## Next actions — in order
+## Next actions — do these in order
 
 1. Provision production PostgreSQL with TLS.
 2. Configure all required environment variables.
