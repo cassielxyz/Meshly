@@ -4,49 +4,45 @@
 
 **Updated:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `work/production-readiness-cleanup`  
-**Active PR:** `#5`  
-**Verified runtime commit:** `71e164814de83d858d744d987b54443ef0019f95`  
-**Verified CI run:** `36268994840`
+**Active branch:** `work/production-preflight-hardening`  
+**Active PR:** `#6`  
+**Last verified runtime commit:** `71e164814de83d858d744d987b54443ef0019f95`  
+**Last verified CI run:** `36268994840`
 
 ## Active task
 
-The production-readiness cleanup + legal-pages implementation is complete and the full CI gate passed.
+Harden the code-side production configuration and preflight path before real credentials are supplied.
 
-Verified work includes:
+Implemented on the active branch:
 
-- stale Google cross-account production test/deployment guidance removed;
-- README/current roadmap aligned with whole-file Google placement and encrypted managed files;
-- production evidence template upgraded for Auto/manual encrypted Google round trips and ciphertext inspection;
-- security policy expanded for encrypted managed-file trust boundaries;
-- public `/privacy` and `/terms` routes implemented with reusable legal-page UI;
-- public footer exposes Privacy and Terms;
-- root metadata updated for multi-cloud encrypted storage;
-- old split-Google storage-flow asset replaced with encrypted provider-aware flow;
-- README banner refreshed for multi-cloud encrypted storage.
+- strict environment validation for the exact 32-byte canonical-base64 `TOKEN_ENCRYPTION_KEY`;
+- production HTTPS enforcement outside localhost;
+- exact Google callback origin/path binding to `NEXT_PUBLIC_APP_URL`;
+- purpose-specific session/encryption/recovery/share/cron secret reuse rejection;
+- environment tests for valid config and the new security invariants;
+- production preflight checks for `/privacy`, `/terms`, `encryptionSchema: v1`, OpenID identity scopes, managed Drive scopes, offline access, PKCE and exact callback;
+- deployment guide updated to explain the hardened checks.
 
 ## Verification state
 
-GitHub Actions run `36268994840` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `71e164814de83d858d744d987b54443ef0019f95`.
-
-This proves code/CI only. Real production database/OAuth/provider behavior remains pending.
+This task is **verification pending** until PR #6 passes the full CI gate. Do not advance the canonical verified milestone before then.
 
 ## Exact next action
 
-1. Let the checkpoint-only commit for this milestone pass CI.
-2. Merge PR #5 into `main`.
-3. Continue production PostgreSQL/OAuth/environment/deployment configuration without committing or pasting secrets.
-4. Run production preflight and then the required real encrypted Google Auto/manual round-trip, ciphertext inspection, resume, integrity, recovery, sharing, cron and smoke tests.
+1. Inspect the newest PR #6 CI.
+2. Fix only failing gates if needed.
+3. When the full gate passes, checkpoint the production-preflight-hardening milestone, run checkpoint-only CI, then merge PR #6.
+4. After merge, production PostgreSQL/OAuth/application secrets and deployed live verification remain external configuration work.
 
 ## Blockers outside code
 
-Real production PostgreSQL credentials, OAuth client secret and application secrets must be configured outside the repository. Never place them in checkpoint files, issues, screenshots or chat.
+Real production PostgreSQL, OAuth and application secret values are not configured. Never place them in repository checkpoint files, issues, screenshots or chat.
 
 ## Invariants
 
 - New Meshly-managed files are encrypted before provider storage.
 - Google managed files are whole-file-only in one Google account.
 - Do not describe the current encryption design as zero-knowledge.
-- Generic distributed parts require explicit provider capability.
+- Purpose-specific production secrets must be independent.
 - Provider limits, terms, quotas and rate limits must not be bypassed.
 - Repository commits newer than this handoff always win.
