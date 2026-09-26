@@ -49,11 +49,18 @@ async function fetchNoFollow(path, init = {}) {
   return fetch(new URL(path, origin), { ...init, redirect: "manual", signal: AbortSignal.timeout(15000) });
 }
 
-await check("landing_page", async () => {
-  const response = await fetchNoFollow("/");
-  expect(response.status === 200, `expected 200, got ${response.status}`);
+async function expectPublicHtml(path, marker) {
+  const response = await fetchNoFollow(path);
+  expect(response.status === 200, `${path} expected 200, got ${response.status}`);
+  expect((response.headers.get("content-type") || "").includes("text/html"), `${path} did not return HTML`);
+  const body = await response.text();
+  expect(body.toLocaleLowerCase().includes(marker.toLocaleLowerCase()), `${path} did not contain expected public-page marker`);
   return { status: response.status };
-});
+}
+
+await check("landing_page", async () => expectPublicHtml("/", "Meshly"));
+await check("privacy_page", async () => expectPublicHtml("/privacy", "Privacy Policy"));
+await check("terms_page", async () => expectPublicHtml("/terms", "Terms of Use"));
 
 await check("security_headers", async () => {
   const response = await fetchNoFollow("/");
@@ -87,7 +94,8 @@ await check("readiness_environment_database_migrations", async () => {
   expect(body?.environment === true, "readiness environment check failed");
   expect(body?.database === true, "readiness database check failed");
   expect(body?.migrations === true, "readiness migration/schema check failed; run pnpm db:migrate against production DATABASE_URL");
-  return { environment: true, database: true, migrations: true };
+  expect(body?.encryptionSchema === "v1", `readiness did not report encryptionSchema=v1; got ${JSON.stringify(body?.encryptionSchema)}`);
+  return { environment: true, database: true, migrations: true, encryptionSchema: "v1" };
 });
 
 await check("google_oauth_start", async () => {
@@ -103,13 +111,18 @@ await check("google_oauth_start", async () => {
   const managedDriveScope = "https://www.googleapis.com/auth/drive.file";
   const appDataScope = "https://www.googleapis.com/auth/drive.appdata";
   const fullDriveScope = "https://www.googleapis.com/auth/drive";
+  for (const identityScope of ["openid", "email", "profile"]) {
+    expect(scopes.has(identityScope), `default OAuth flow is missing ${identityScope} identity scope`);
+  }
   expect(scopes.has(managedDriveScope), "default OAuth flow is missing drive.file managed scope");
   expect(scopes.has(appDataScope), "default OAuth flow is missing drive.appdata recovery scope");
   expect(!scopes.has(fullDriveScope), "default OAuth flow unexpectedly requests full Drive scope");
+  expect(target.searchParams.get("access_type") === "offline", "OAuth flow must request offline access for linked storage accounts");
+  expect(target.searchParams.get("code_challenge"), "OAuth PKCE code_challenge is missing");
 
   const expectedCallback = new URL("/api/auth/google/callback", origin).toString();
   expect(target.searchParams.get("redirect_uri") === expectedCallback, `OAuth redirect_uri does not match deployed origin; expected ${expectedCallback}`);
-  return { provider: target.hostname, pkce: true, managedScope: true, appDataScope: true, redirectUri: expectedCallback };
+  return { provider: target.hostname, pkce: true, identityScopes: true, managedScope: true, appDataScope: true, offlineAccess: true, redirectUri: expectedCallback };
 });
 
 await check("maintenance_requires_secret", async () => {
@@ -129,7 +142,7 @@ await check("cross_origin_mutation_guard", async () => {
 });
 
 const summary = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: new Date().toISOString(),
   origin,
   passed: results.filter((item) => item.status === "pass").length,
