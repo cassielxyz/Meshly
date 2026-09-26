@@ -4,6 +4,7 @@
   "taskId": "production-live-verification",
   "title": "Verify the deployed production candidate and resolve readiness blockers",
   "branch": "work/production-live-verification",
+  "pullRequest": 7,
   "status": "blocked_on_external_environment_configuration",
   "checkpointDate": "2026-09-27",
   "baseMainCommit": "eb755a886162194b08f40e275cc96b2d6d90c418",

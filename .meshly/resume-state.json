@@ -3,6 +3,7 @@
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
   "activeBranch": "work/production-live-verification",
+  "activePullRequest": 7,
   "resumeStatus": "blocked_on_external_environment_configuration",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-preflight-hardening.md",
   "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
