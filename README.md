@@ -19,19 +19,20 @@ Google cross-account sharding is intentionally disabled. The generic split engin
 
 ## Current product status
 
-The multi-cloud foundation and the first mandatory encrypted managed-file format are implemented in code and have passed the repository CI gates.
+The multi-cloud foundation, mandatory encrypted managed-file format, Google destination selector, and refreshed public product story are implemented in code and have passed the repository CI gates.
 
 Implemented now:
 
 - separate **Google Drives** and **Other Clouds** product areas;
 - provider capability registry and provider-aware transfer profiles;
 - Google whole-file-only placement;
-- optional explicit Google-account selection at the planner/API layer;
+- **Auto choose** or explicit healthy Google-account selection in the upload UI for file and folder uploads;
 - conservative TeraBox profile: one active file and one upload part at a time initially;
 - adaptive retry/backoff helpers for providers that permit concurrency;
 - versioned encrypted storage for every **new Meshly-managed upload**;
 - authenticated/ranged decryption for encrypted managed downloads;
 - encrypted-object-aware integrity and recovery metadata;
+- landing/demo story aligned to encrypt → choose/route → transfer → verify rather than Google cross-account splitting;
 - client-independent provider/encryption architecture for a later Android app.
 
 Production deployment and real cloud round-trip verification are still pending credentials/database setup. Passing CI does not mean the live Google integration has already been verified.
@@ -96,6 +97,7 @@ The Google implementation includes:
 - Managed Google OAuth mode and optional broader Full Drive indexing;
 - quota/account health refresh;
 - whole-file account placement;
+- Auto/manual destination selection for managed uploads;
 - encrypted resumable managed uploads;
 - plaintext and ciphertext integrity metadata;
 - authenticated encrypted managed downloads with HTTP Range support;
@@ -104,8 +106,6 @@ The Google implementation includes:
 - encrypted OAuth refresh tokens;
 - health/readiness endpoints, migrations, cron maintenance and deployment preflight;
 - responsive light/dark UI and public interactive demo.
-
-Some landing/demo copy still illustrates the former pooled/split-Google concept and remains scheduled for cleanup.
 
 ## Architecture
 
@@ -161,7 +161,7 @@ https://YOUR_DOMAIN/api/auth/google/callback
 
 Managed mode requests OpenID profile/email plus `drive.file` and `drive.appdata`. Full Drive mode is optional and should only be exposed publicly after the deployment satisfies applicable Google requirements for the broader Drive scope.
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md).
+See [`DEPLOYMENT.md`](DEPLOYMENT.md). Public deployment also exposes `/privacy` and `/terms` for OAuth/product transparency.
 
 ## Verification
 
@@ -195,25 +195,28 @@ Recovery metadata must never contain provider refresh tokens, application secret
 
 ## Roadmap from here
 
-1. Expose manual Google-account destination selection in the upload UI.
-2. Update landing/demo copy away from Google cross-account sharding.
-3. Finish production PostgreSQL + migration `0005`, credentials and deployed preflight.
-4. Run real encrypted Google upload/download SHA-256 round trips, resume tests, ciphertext inspection and recovery/integrity tests.
-5. Implement the supported TeraBox adapter with its conservative transfer queue.
-6. Add Dropbox and MEGA adapters.
-7. Verify whether MediaFire currently supports a suitable production API before enabling it.
-8. Build the Android client on top of the same provider/encryption/manifest format.
+1. Finish production PostgreSQL + migration `0005`, credentials and deployed preflight.
+2. Run real encrypted Google upload/download SHA-256 round trips for both Auto and explicitly selected Google destinations; inspect the remote opaque ciphertext object.
+3. Test interrupted/resumed encrypted upload, integrity, recovery, sharing and cron authentication on the deployed candidate.
+4. Implement the supported TeraBox adapter with its conservative transfer queue.
+5. Add Dropbox and MEGA adapters.
+6. Verify whether MediaFire currently supports a suitable production API before enabling it.
+7. Build the Android client on top of the stable provider/encryption/manifest format.
 
 ## Durable continuation
 
-Future coding agents must read:
+Future coding agents must read, in order:
 
 - `AGENTS.md`
+- `HANDOFF.md`
+- `NEXT_ACTION.md`
 - `CHECKPOINT.md`
 - `.meshly/project-state.json`
+- `.meshly/current-task.json`
+- `.meshly/resume-state.json`
 - newest file in `docs/checkpoints/`
 
-The repository checkpoint is the source of truth when chat context is lost.
+`CHECKPOINT.md` records the last verified milestone, while the handoff/current-task files preserve in-flight branch work. Repository state wins whenever it is newer than checkpoint text.
 
 ---
 
