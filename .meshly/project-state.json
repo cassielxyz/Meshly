@@ -4,15 +4,15 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "credentials_deployment_real_integration_verification",
-  "status": "production_code_preflight_security_demo_visual_polish_scroll_scrubbed_placement_public_dark_mode_android_mobile_refinement_complete_pending_credentialed_integration",
+  "status": "production_code_preflight_security_demo_visual_polish_scroll_scrubbed_placement_public_dark_mode_android_mobile_and_demo_refinement_complete_pending_credentialed_integration",
   "checkpointDate": "2026-09-26",
-  "generatedFromCommit": "bbdbc60fcab4e8bbcb73501376c35a6bd22c785d",
-  "lastVerifiedRuntimeCommit": "bbdbc60fcab4e8bbcb73501376c35a6bd22c785d",
+  "generatedFromCommit": "a283d4d330fe0481a5db035c750085f4ac808e96",
+  "lastVerifiedRuntimeCommit": "a283d4d330fe0481a5db035c750085f4ac808e96",
   "requiredReads": [
     "AGENTS.md",
     "CHECKPOINT.md",
     ".meshly/project-state.json",
-    "docs/checkpoints/2026-09-26-android-mobile-scroll-hero-fix.md",
+    "docs/checkpoints/2026-09-26-android-demo-mobile-refinement.md",
     "DEPLOYMENT.md",
     "PRODUCTION_TESTING.md"
   ],
@@ -89,7 +89,13 @@
     "stable_absolute_mobile_scroll_progress",
     "android_browser_toolbar_resilient_scroll_measurement",
     "mobile_placement_card_spacing_refinement",
-    "compact_32px_mobile_public_header_controls"
+    "compact_32px_mobile_public_header_controls",
+    "android_demo_theme_aware_stage_surfaces",
+    "android_demo_unified_capacity_contrast_fix",
+    "android_demo_planning_badge_overflow_fix",
+    "android_demo_mobile_card_spacing_and_safe_area",
+    "android_demo_direct_header_controls",
+    "android_demo_manual_navigation_pauses_autoplay"
   ],
   "verifiedByCI": [
     "modern_github_actions_setup",
@@ -106,7 +112,8 @@
     "public_dark_mode_source_and_footer_credit_build",
     "header_scroll_footer_refinement_build",
     "header_mounted_public_controls_build",
-    "android_mobile_hero_and_scroll_refinement_build"
+    "android_mobile_hero_and_scroll_refinement_build",
+    "android_demo_mobile_dark_mode_and_responsive_build"
   ],
   "pendingIntegration": [
     "production_postgres_migration",
@@ -123,7 +130,7 @@
     "deployed_share_link_controls",
     "vercel_cron_authentication",
     "desktop_and_mobile_deployment_smoke_test",
-    "deployed_android_header_hero_and_scroll_animation_smoke_test"
+    "deployed_android_header_hero_scroll_and_demo_smoke_test"
   ],
   "nextActions": [
     "provision_tls_postgres",
@@ -135,7 +142,7 @@
     "force_cross_account_file_and_compare_original_download_sha256",
     "run_integrity_and_recovery_rehearsal",
     "verify_sharing_and_maintenance",
-    "run_desktop_and_android_mobile_smoke_tests_including_header_controls_hero_typography_background_and_scroll_split_progression",
+    "run_desktop_and_android_mobile_smoke_tests_including_header_controls_hero_typography_background_scroll_split_progression_and_demo_step_layout",
     "run_pnpm_release_check",
     "rerun_pnpm_verify",
     "patch_only_failures_found_by_real_tests",
@@ -155,6 +162,9 @@
     "public_source_and_theme_controls_must_live_inside_public_headers_not_float_over_page_content",
     "mobile_placement_animation_must_start_from_whole_file_when_map_enters_its_dedicated_scroll_range",
     "android_mobile_hero_must_keep_clean_neutral_lavender_pink_surface_without_muddy_green_wash",
+    "demo_stage_surfaces_must_use_semantic_theme_tokens_and_preserve_readable_contrast_in_dark_mode",
+    "demo_mobile_status_badges_must_not_overflow_or_clip",
+    "manual_demo_navigation_must_pause_autoplay",
     "keep_public_top_controls_compact_and_non_overlapping",
     "keep_single_editorial_public_footer_signature",
     "preserve_slow_extended_scroll_story_unless_deployed_testing_proves_a_problem",
