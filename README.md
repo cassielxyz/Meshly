@@ -1,45 +1,135 @@
 <p align="center"><img src="docs/assets/meshly-banner.svg" alt="Meshly — all your storage, one workspace" width="100%"></p>
 
-<p align="center"><strong>One Drive-like workspace across multiple Google storage accounts.</strong></p>
+<p align="center"><strong>One workspace across your connected cloud storage.</strong></p>
 
-<p align="center">Connect accounts · pool real quota · split oversized files safely · resume transfers · reconstruct on demand</p>
+<p align="center">Google Drives · Other Clouds · resumable transfers · integrity checks · encrypted-storage roadmap</p>
 
 ---
 
 ## What is Meshly?
 
-Meshly is a virtual filesystem for storage spread across multiple Google accounts. Users work inside one logical workspace while Meshly decides where the underlying bytes live.
+Meshly is a unified file workspace for storage you already own across different cloud providers. The product keeps provider details out of the way while still respecting each provider's limits and policies.
 
-If a file safely fits in one healthy account, Meshly keeps it whole. If it does not, the placement engine splits the original byte stream into deterministic parts, stores those parts across available accounts, records integrity metadata, and reconstructs the exact original stream on download.
+Meshly now separates storage into two clear areas:
 
-<p align="center"><img src="docs/assets/storage-flow.svg" alt="Meshly logical-to-physical storage flow" width="94%"></p>
+- **Google Drives** — connect multiple Google accounts, browse them from one Meshly workspace, and upload each managed file as one whole object to a selected or automatically chosen Google account.
+- **Other Clouds** — a provider-adapter layer for TeraBox, Dropbox, MEGA and future services. MediaFire stays experimental until supported production API access is verified.
 
-## Production feature set
+Google cross-account sharding is intentionally disabled. The generic split engine remains isolated for future providers/use cases that explicitly permit distributed physical parts.
 
-- **Live unified filesystem** — folders, file/folder upload, search, list/grid browsing, breadcrumbs, rename, move, copy, star, trash, restore and permanent delete.
-- **Interactive public demo** — `/demo` safely demonstrates account pooling, placement planning, cross-account splitting, resumable upload and verified reconstruction using simulated data only. No credentials are required.
-- **Unified storage pool** — real Drive quota and account health are combined into one storage view.
-- **Whole-file-first placement** — fragmentation happens only when one account cannot safely hold the complete file.
-- **Resumable direct uploads** — the backend creates Google Drive resumable sessions and the browser streams ranges directly to Google instead of proxying multi-GB payloads through Meshly.
-- **Incremental SHA-256** — large files are hashed without reading the complete file into browser memory.
-- **Cross-account reconstruction** — managed multipart files stream back in logical order with HTTP byte-range support.
-- **Managed + Full modes** — Managed mode uses `drive.file`; Full mode can index pre-existing Drive content after the deployment satisfies Google's broader-scope requirements.
-- **Signed disaster recovery** — Meshly-managed filesystem/chunk manifests are signed and copied to Drive `appDataFolder`, with restore tooling in the UI.
-- **Integrity verification** — physical parts can be re-checked and logical files marked degraded when storage disappears or changes unexpectedly.
-- **Secure sharing** — expiring links, optional passwords, download caps, revocation, short-lived signed grants, and persisted authorization-attempt rate limiting.
-- **Background maintenance** — scheduled quota refresh, Full Drive change sync, account-health updates and recovery snapshots.
-- **Production security** — encrypted refresh tokens, HttpOnly/SameSite sessions, PKCE/state OAuth, CSP/HSTS/security headers, same-origin mutation enforcement and deployment readiness checks.
-- **Operational UI** — transfers, notifications/activity, accounts, storage, diagnostics, integrity, recovery, profile, help/privacy, settings, error and empty states.
+## Current product status
 
-## Product motion
+The existing Google Drive application is production-code complete for its original managed-file flow and has passed CI, but the product is currently being expanded into the new multi-cloud architecture.
 
-The marketing experience uses Motion for restrained, hardware-friendly transform/opacity animation rather than heavy WebGL effects. The landing page includes scroll progress, staged reveals and a pinned storage-placement story; the interactive demo has an auto-play/manual guided session. `prefers-reduced-motion` is respected throughout.
+The first multi-cloud foundation is implemented:
 
-The motion language is inspired by modern progressive technical-product storytelling while keeping Meshly’s layout, branding, color system and interaction model original.
+- separate **Google Drives** and **Other Clouds** product areas;
+- provider capability registry;
+- provider-aware transfer profiles;
+- Google whole-file-only placement;
+- optional explicit Google-account selection at the planner/API layer;
+- adaptive transfer/backoff helpers;
+- conservative TeraBox profile: one active file and one upload part at a time initially;
+- documented rclone, Cloudreve, OpenList/AList and TeraBox uploader references;
+- client-independent provider architecture for a later Android app.
+
+### Encryption milestone
+
+Meshly's target storage invariant is simple:
+
+> **Every Meshly-managed file is encrypted before it is stored by a cloud provider. There is no plaintext-storage mode.**
+
+That encrypted file-object format is the **next implementation milestone**. The current Google managed upload path still sends the selected source bytes directly to Google resumable sessions, so this README does not claim file-byte encryption is already complete.
+
+OAuth refresh tokens are already encrypted at rest with AES-256-GCM.
+
+## Provider model
+
+| Area | Provider | State | Initial transfer policy |
+| --- | --- | --- | --- |
+| Google Drives | Google Drive | Active | whole-file placement, resumable upload, adaptive concurrency |
+| Other Clouds | TeraBox | Adapter planned | sequential remote queue, resumable/multipart-aware |
+| Other Clouds | Dropbox | Adapter planned | resumable + adaptive concurrency |
+| Other Clouds | MEGA | Adapter planned | SDK/API-backed + adaptive concurrency |
+| Other Clouds | MediaFire | Experimental | enable only after current production API support is verified |
+
+Provider policies are capability-driven. Multipart **transport** does not automatically mean Meshly may persist one logical file as many separate provider objects.
+
+## Transfer engine
+
+Meshly optimizes transfers per provider instead of using one hard-coded thread count:
+
+1. inspect provider capabilities and account health;
+2. choose a compatible destination;
+3. use resumable/multipart transport where supported;
+4. increase concurrency only for providers that allow adaptive behavior;
+5. back off on throttling, timeouts and transient server failures;
+6. verify the remote object before promoting a logical file to ready.
+
+For TeraBox, Meshly starts conservatively at one active file and one upload part at a time. Hashing/encryption preparation can run ahead of the remote queue, so the client does useful work without flooding the provider.
+
+## Open-source references
+
+Meshly studies established open-source storage projects instead of reinventing every pattern:
+
+- **rclone** — provider abstraction, retries/throttling, crypt/chunker/combine concepts;
+- **Cloudreve** — client upload architecture, resumability and provider-specific concurrency;
+- **OpenList / AList** — provider-driver design and TeraBox operational behavior;
+- **TeraBox uploader implementations** — multipart sequencing, upload IDs, hashes and finalization.
+
+These are engineering references, not a license to copy code blindly or bypass provider restrictions. Production integrations prefer official provider APIs/SDKs. See [`docs/OPEN_SOURCE_STORAGE_REFERENCES.md`](docs/OPEN_SOURCE_STORAGE_REFERENCES.md).
+
+## Existing Google functionality
+
+The current Google implementation already includes:
+
+- responsive Drive-style logical filesystem;
+- folders, files, search, recent/starred/trash and sharing;
+- Managed Google OAuth mode and optional broader Full Drive indexing;
+- real quota/account health refresh;
+- resumable direct-to-Drive uploads;
+- incremental SHA-256 hashing;
+- upload commit verification;
+- HTTP Range downloads;
+- integrity scanning;
+- signed recovery manifests;
+- encrypted refresh tokens;
+- health/readiness endpoints, migrations, cron maintenance and deployment preflight;
+- responsive light/dark UI and public interactive demo.
+
+Some marketing/demo copy still illustrates the former pooled/split-Google concept and will be updated as part of the new product-direction cleanup.
+
+## Architecture
+
+```text
+                         Meshly Core
+                              │
+               ┌──────────────┴──────────────┐
+               │                             │
+         Google Drives                  Other Clouds
+               │                             │
+        Google adapter             Provider adapter layer
+                                             │
+                                  ┌──────────┼──────────┐
+                                  │          │          │
+                               TeraBox    Dropbox     MEGA
+               └────────────────────┬────────────────────┘
+                                    │
+                          Provider-aware transfer
+                                    │
+                       Encrypted storage format
+                         (next implementation)
+                                    │
+                         Integrity + recovery
+```
+
+Provider, transfer, encryption and manifest logic stays outside React UI code so the same storage format can later power the Android app without rewriting the cloud layer.
+
+Read [`ARCHITECTURE.md`](ARCHITECTURE.md) for the invariants and provider contract.
 
 ## Stack
 
-`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Motion · Radix/shadcn-style primitives · `Drizzle ORM` · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
+`Next.js 16.3` · `React 19` · `TypeScript` · `Tailwind CSS 4` · Motion · Drizzle ORM · PostgreSQL · Google OAuth 2.0 · Google Drive API · `hash-wasm` · Vitest
 
 ## Quick start
 
@@ -52,103 +142,70 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`. The public demo is available at `http://localhost:3000/demo` without Google credentials.
+Open `http://localhost:3000`.
 
-## Configuration
+## Google configuration
 
-Fill every value in `.env.local` using `.env.example`. Meshly validates production configuration through `/api/readiness`; missing or malformed deployment configuration returns HTTP 503 without exposing secret values.
-
-For Google OAuth, create a Web application, enable the Drive API, and configure the exact callback used by `GOOGLE_REDIRECT_URI`:
+Create a Google OAuth Web application, enable the Drive API, and configure the exact callback in `GOOGLE_REDIRECT_URI`:
 
 ```text
 https://YOUR_DOMAIN/api/auth/google/callback
 ```
 
-The default Managed flow requests OpenID profile/email plus `drive.file` and `drive.appdata`. Full Drive mode is optional and should only be enabled publicly after the deployment satisfies Google's requirements for the broader Drive scope.
+Managed mode requests OpenID profile/email plus `drive.file` and `drive.appdata`. Full Drive mode is optional and should only be exposed publicly after the deployment satisfies the applicable Google requirements for the broader Drive scope.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete credential and launch checklist.
-
-## Transfer model
-
-1. The browser submits logical metadata to `/api/uploads/plan`.
-2. Meshly refreshes/uses healthy account capacity and applies reserve-aware placement.
-3. The API creates one or more Google Drive resumable upload sessions.
-4. The browser incrementally hashes and uploads the planned source ranges.
-5. `/api/uploads/commit` validates the physical objects and promotes the logical file to ready only after all parts verify.
-6. `/api/files/:id/download` translates logical byte ranges into one or more Drive byte ranges and streams them in order.
-7. Integrity and recovery services can independently verify/rebuild Meshly-managed metadata.
-
-## Product areas
-
-Landing · interactive demo · login · onboarding · My Drive · folders · search · recent · starred · shared · trash · storage pool · connected accounts · transfer center · activity · integrity · recovery · notifications · diagnostics · help · privacy · profile · general/storage/transfer/appearance/security/notification/advanced settings · public share pages · error/404 states.
-
-## Design system
-
-Meshly intentionally feels familiar to Drive users without copying Google Drive's product identity. It uses the Google productivity color family — blue `#4285F4`, green `#34A853`, yellow `#FBBC04`, red `#EA4335` — in an original connected-node Meshly mark. The interface is light-first with complete dark tokens, responsive desktop/mobile navigation, accessible focus states and reduced-motion-aware interaction patterns.
+See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Verification
 
-Meshly uses a reproducible `pnpm-lock.yaml` and frozen dependency installation. Every push and pull request runs the hardened production gate:
+Every pull request and push to `main` runs:
 
 ```text
-frozen install → checkpoint validation → production dependency security audit → ESLint → strict typecheck → unit tests → optimized production build
+frozen install
+→ checkpoint validation
+→ production dependency security audit
+→ ESLint
+→ strict TypeScript
+→ Vitest
+→ optimized production build
 ```
 
-Locally the matching gate is:
+Local equivalent:
 
 ```bash
 pnpm verify
 ```
 
-The production dependency audit rejects high-severity advisories. The current Drizzle ORM line is patched for the SQL-identifier injection advisory affecting versions below `0.45.2`. Dependabot monitors both npm dependencies and GitHub Actions for future updates.
-
-The interactive demo and scroll-motion redesign passed the full gate at verified runtime/UI commit `174cc527b4eda3949860789210e6d39dd8229509`.
-
 ## Security
 
-Read [SECURITY.md](SECURITY.md) before deployment. Refresh tokens are AES-256-GCM encrypted at rest. Public sharing uses hashed tokens and signed short-lived grants. Unsafe `/api/*` mutations are same-origin guarded by Next.js Proxy. Never expose OAuth refresh tokens or Google resumable-upload session URLs in logs.
+Read [`SECURITY.md`](SECURITY.md) before deployment.
 
-## Operations
+Current application-secret protections include encrypted Google refresh tokens, HttpOnly/SameSite sessions, PKCE/state OAuth, same-origin mutation guards, CSP/HSTS/security headers and protected maintenance endpoints.
 
-`vercel.json` schedules `/api/maintenance` daily. The endpoint requires `Authorization: Bearer <CRON_SECRET>` and performs quota/account refresh, Full Drive change synchronization, and recovery-manifest maintenance.
+The next security milestone is the mandatory encrypted file-object format for every Meshly-managed upload. Recovery metadata must never contain provider refresh tokens, application secrets or plaintext file keys.
 
-`GET /api/health` is a lightweight service endpoint. `GET /api/readiness` verifies required production configuration, database connectivity, and required migrated schema and should be used as the pre-traffic readiness gate.
+## Roadmap from here
 
-After deployment run:
+1. Implement mandatory streaming file encryption + key wrapping + encrypted manifests.
+2. Update downloads, integrity scanning, sharing and recovery to decrypt/verify the encrypted object format.
+3. Expose manual Google-account destination selection in the upload UI.
+4. Update landing/demo copy away from Google cross-account sharding.
+5. Implement the official TeraBox adapter with its conservative transfer queue.
+6. Add Dropbox and MEGA adapters.
+7. Verify whether MediaFire currently supports a suitable production API before enabling it.
+8. Finish production PostgreSQL, credentials, deployment preflight and real round-trip tests.
+9. Build the Android client on top of the same provider/encryption/manifest format.
 
-```bash
-pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json
-```
+## Durable continuation
 
-The preflight validates HTTPS/security headers, health/readiness, migrated schema, Google OAuth redirect + PKCE, Managed scopes, callback URL, cron protection and cross-origin mutation rejection.
-
-## Durable AI continuation
-
-Meshly carries its project state in the repository so a lost ChatGPT/agent session does not restart completed work. Future agents must read:
+Future coding agents must read:
 
 - `AGENTS.md`
 - `CHECKPOINT.md`
 - `.meshly/project-state.json`
-- the newest record under `docs/checkpoints/`
+- newest file in `docs/checkpoints/`
 
-`pnpm checkpoint:check` validates the continuation state as part of CI.
-
-## Before the first real-user test
-
-The code build, demo, security gate and deployment tooling are complete. The remaining launch sequence is:
-
-1. Provision the production PostgreSQL database with TLS.
-2. Add all environment variables from `.env.example`.
-3. Run `pnpm db:migrate` against production.
-4. Deploy `main` to Vercel/Node 22+.
-5. Run `pnpm production:preflight` and require every check to pass.
-6. Complete [PRODUCTION_TESTING.md](PRODUCTION_TESTING.md), including a forced two-account split/reconstruction SHA-256 test.
-7. Smoke-test `/` and `/demo` on desktop/mobile, including reduced-motion behavior and animation smoothness.
-8. Run `pnpm release:check` and `pnpm verify` before creating the production release.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Changes to placement, manifests, reconstruction, account removal, sharing, recovery or motion behavior must preserve storage/security/accessibility invariants and include appropriate verification.
+The repository checkpoint is the source of truth when chat context is lost.
 
 ---
 
