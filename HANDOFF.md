@@ -6,43 +6,45 @@
 **Repository:** `cassielxyz/Meshly`  
 **Active branch:** `work/production-preflight-hardening`  
 **Active PR:** `#6`  
-**Last verified runtime commit:** `71e164814de83d858d744d987b54443ef0019f95`  
-**Last verified CI run:** `36268994840`
+**Verified runtime commit:** `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`  
+**Verified CI run:** `36269498896`
 
 ## Active task
 
-Harden the code-side production configuration and preflight path before real credentials are supplied.
+Production preflight/environment hardening is implemented and the full CI gate has passed.
 
-Implemented on the active branch:
+Verified work includes:
 
-- strict environment validation for the exact 32-byte canonical-base64 `TOKEN_ENCRYPTION_KEY`;
-- production HTTPS enforcement outside localhost;
-- exact Google callback origin/path binding to `NEXT_PUBLIC_APP_URL`;
-- purpose-specific session/encryption/recovery/share/cron secret reuse rejection;
-- environment tests for valid config and the new security invariants;
-- production preflight checks for `/privacy`, `/terms`, `encryptionSchema: v1`, OpenID identity scopes, managed Drive scopes, offline access, PKCE and exact callback;
-- deployment guide updated to explain the hardened checks.
+- exact canonical-base64 32-byte `TOKEN_ENCRYPTION_KEY` validation;
+- HTTPS requirement outside localhost;
+- exact Google callback binding to `NEXT_PUBLIC_APP_URL`;
+- purpose-specific secret reuse rejection;
+- environment validation tests;
+- preflight checks for `/privacy`, `/terms`, readiness `encryptionSchema: v1`, OpenID identity scopes, managed Drive scopes, offline access, PKCE and exact callback;
+- deployment guidance updated for the hardened validator/preflight.
 
 ## Verification state
 
-This task is **verification pending** until PR #6 passes the full CI gate. Do not advance the canonical verified milestone before then.
+GitHub Actions run `36269498896` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`.
+
+This proves code/CI only. Real production database/OAuth/provider behavior remains pending.
 
 ## Exact next action
 
-1. Inspect the newest PR #6 CI.
-2. Fix only failing gates if needed.
-3. When the full gate passes, checkpoint the production-preflight-hardening milestone, run checkpoint-only CI, then merge PR #6.
-4. After merge, production PostgreSQL/OAuth/application secrets and deployed live verification remain external configuration work.
+1. Let the checkpoint-only commit pass CI.
+2. Merge PR #6 into `main`.
+3. Continue production PostgreSQL/OAuth/environment/deployment setup using external secret storage only.
+4. Run production preflight and all required real encrypted Google integration tests.
 
 ## Blockers outside code
 
-Real production PostgreSQL, OAuth and application secret values are not configured. Never place them in repository checkpoint files, issues, screenshots or chat.
+Production PostgreSQL credentials, Google OAuth secret and application secrets are not configured. Never place them in repository checkpoint files, issues, screenshots or chat.
 
 ## Invariants
 
 - New Meshly-managed files are encrypted before provider storage.
 - Google managed files are whole-file-only in one Google account.
-- Do not describe the current encryption design as zero-knowledge.
 - Purpose-specific production secrets must be independent.
-- Provider limits, terms, quotas and rate limits must not be bypassed.
+- Current encryption is backend-trusted, not zero-knowledge.
+- Provider limits and terms must be respected.
 - Repository commits newer than this handoff always win.

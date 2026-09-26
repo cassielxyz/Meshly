@@ -5,11 +5,11 @@
   "title": "Harden production environment validation and automated preflight",
   "branch": "work/production-preflight-hardening",
   "pullRequest": 6,
-  "status": "verification_pending",
+  "status": "milestone_verified_merge_pending",
   "checkpointDate": "2026-09-27",
   "baseMainCommit": "d288a5ce9a45c74442d2fbaec934ac28d95a41de",
-  "lastVerifiedRuntimeCommit": "71e164814de83d858d744d987b54443ef0019f95",
-  "lastVerifiedCiRun": "36268994840",
+  "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
+  "lastVerifiedCiRun": "36269498896",
   "completedOnTask": [
     "validate_token_encryption_key_as_exact_canonical_base64_32_bytes",
     "reject_reused_purpose_specific_secrets",
@@ -18,14 +18,14 @@
     "preflight_checks_public_privacy_and_terms",
     "preflight_checks_encryption_schema_v1",
     "preflight_checks_identity_managed_drive_offline_pkce_and_exact_callback",
-    "document_hardened_preflight"
+    "document_hardened_preflight",
+    "full_ci_gate_passed",
+    "checkpoint_verified_milestone"
   ],
   "remaining": [
-    "run_full_pr_ci",
-    "fix_any_ci_failures",
-    "checkpoint_verified_production_preflight_hardening",
-    "run_checkpoint_only_ci",
-    "merge_pr_6"
+    "verify_checkpoint_only_ci",
+    "merge_pr_6",
+    "continue_external_production_configuration_and_live_verification"
   ],
   "blockers": [
     "production_credentials_and_database_are_not_configured_for_real_provider_verification"
