@@ -27,11 +27,52 @@ export const linkedAccounts = pgTable("linked_accounts", {
 }, (table) => [uniqueIndex("linked_google_subject_idx").on(table.googleSubject), index("linked_accounts_user_idx").on(table.userId)]);
 
 export const logicalFiles = pgTable("logical_files", {
-  id: text("id").primaryKey(), userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(), parentId: text("parent_id"), name: text("name").notNull(), mimeType: text("mime_type").notNull(), size: bigint("size", { mode: "number" }).notNull(), sha256: text("sha256"), status: text("status").notNull().default("uploading"), starred: integer("starred").notNull().default(0), description: text("description"), version: integer("version").notNull().default(1), trashedAt: timestamp("trashed_at", { withTimezone: true }), trashedParentId: text("trashed_parent_id"), sourceKind: text("source_kind").notNull().default("managed"), sourceAccountId: text("source_account_id").references(() => linkedAccounts.id, { onDelete: "set null" }), sourceDriveFileId: text("source_drive_file_id"), sourceMimeType: text("source_mime_type"), sourceWebViewLink: text("source_web_view_link"), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(), updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-}, (table) => [index("logical_files_user_parent_idx").on(table.userId, table.parentId), index("logical_files_user_updated_idx").on(table.userId, table.updatedAt), index("logical_files_user_trash_idx").on(table.userId, table.trashedAt), uniqueIndex("logical_files_source_idx").on(table.sourceAccountId, table.sourceDriveFileId)]);
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  parentId: text("parent_id"),
+  name: text("name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: bigint("size", { mode: "number" }).notNull(),
+  sha256: text("sha256"),
+  status: text("status").notNull().default("uploading"),
+  starred: integer("starred").notNull().default(0),
+  description: text("description"),
+  version: integer("version").notNull().default(1),
+  encryptionVersion: integer("encryption_version").notNull().default(0),
+  wrappedFileKey: text("wrapped_file_key"),
+  encryptionNoncePrefix: text("encryption_nonce_prefix"),
+  encryptionFramePlainBytes: integer("encryption_frame_plain_bytes"),
+  trashedAt: timestamp("trashed_at", { withTimezone: true }),
+  trashedParentId: text("trashed_parent_id"),
+  sourceKind: text("source_kind").notNull().default("managed"),
+  sourceAccountId: text("source_account_id").references(() => linkedAccounts.id, { onDelete: "set null" }),
+  sourceDriveFileId: text("source_drive_file_id"),
+  sourceMimeType: text("source_mime_type"),
+  sourceWebViewLink: text("source_web_view_link"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("logical_files_user_parent_idx").on(table.userId, table.parentId),
+  index("logical_files_user_updated_idx").on(table.userId, table.updatedAt),
+  index("logical_files_user_trash_idx").on(table.userId, table.trashedAt),
+  index("logical_files_encryption_version_idx").on(table.encryptionVersion),
+  uniqueIndex("logical_files_source_idx").on(table.sourceAccountId, table.sourceDriveFileId),
+]);
 
 export const chunks = pgTable("chunks", {
-  id: text("id").primaryKey(), fileId: text("file_id").references(() => logicalFiles.id, { onDelete: "cascade" }).notNull(), accountId: text("account_id").references(() => linkedAccounts.id, { onDelete: "restrict" }).notNull(), part: integer("part").notNull(), offset: bigint("offset", { mode: "number" }).notNull(), size: bigint("size", { mode: "number" }).notNull(), physicalName: text("physical_name").notNull(), driveFileId: text("drive_file_id"), sha256: text("sha256"), status: text("status").notNull().default("pending"), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  id: text("id").primaryKey(),
+  fileId: text("file_id").references(() => logicalFiles.id, { onDelete: "cascade" }).notNull(),
+  accountId: text("account_id").references(() => linkedAccounts.id, { onDelete: "restrict" }).notNull(),
+  part: integer("part").notNull(),
+  offset: bigint("offset", { mode: "number" }).notNull(),
+  size: bigint("size", { mode: "number" }).notNull(),
+  physicalSize: bigint("physical_size", { mode: "number" }),
+  physicalName: text("physical_name").notNull(),
+  driveFileId: text("drive_file_id"),
+  sha256: text("sha256"),
+  ciphertextSha256: text("ciphertext_sha256"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [uniqueIndex("chunks_file_part_idx").on(table.fileId, table.part), index("chunks_account_idx").on(table.accountId)]);
 
 export const activities = pgTable("activities", {

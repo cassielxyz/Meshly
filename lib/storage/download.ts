@@ -4,6 +4,9 @@ import { chunks, linkedAccounts, logicalFiles } from "@/db/schema";
 import { downloadDriveFile, exportDriveFile } from "@/lib/google/drive";
 import { refreshGoogleAccessToken } from "@/lib/google/oauth";
 import { decryptSecret } from "@/lib/security/crypto";
+import { unwrapFileKey } from "@/lib/security/file-encryption";
+import { AES_GCM_TAG_BYTES, frameLayout, framesForPlainRange } from "@/lib/storage/encryption-format";
+import { decryptManagedFrame } from "@/lib/storage/server-file-encryption";
 
 function rangeOf(header: string | null, size: number) {
   if (size === 0) return { start: 0, end: -1, partial: false };
@@ -32,7 +35,6 @@ async function streamExternal(file: typeof logicalFiles.$inferSelect, rangeHeade
   const account = (await db.select().from(linkedAccounts).where(eq(linkedAccounts.id, file.sourceAccountId)).limit(1))[0];
   if (!account) return new Response("Source account is disconnected", { status: 409 });
   const access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted));
-
   if (file.sourceMimeType.startsWith("application/vnd.google-apps.")) {
     const target = nativeExport(file.sourceMimeType);
     if (!target) {
@@ -42,24 +44,14 @@ async function streamExternal(file: typeof logicalFiles.$inferSelect, rangeHeade
     const response = await exportDriveFile(access, file.sourceDriveFileId, target.mimeType);
     if (!response.ok || !response.body) return new Response("Google-native export failed", { status: 502 });
     const name = file.name.toLowerCase().endsWith(target.extension) ? file.name : `${file.name}${target.extension}`;
-    const headers = new Headers({
-      "Content-Type": target.mimeType,
-      "Cache-Control": "private, no-store",
-      "Content-Disposition": dispositionHeader(disposition, name),
-    });
+    const headers = new Headers({ "Content-Type": target.mimeType, "Cache-Control": "private, no-store", "Content-Disposition": dispositionHeader(disposition, name) });
     const length = response.headers.get("content-length");
     if (length) headers.set("Content-Length", length);
     return new Response(response.body, { status: 200, headers });
   }
-
   const response = await downloadDriveFile(access, file.sourceDriveFileId, rangeHeader ?? undefined);
   if (!response.ok || !response.body) return new Response(`Drive download failed (${response.status})`, { status: response.status === 404 ? 404 : 502 });
-  const headers = new Headers({
-    "Content-Type": file.sourceMimeType || response.headers.get("content-type") || "application/octet-stream",
-    "Cache-Control": "private, no-store",
-    "Content-Disposition": dispositionHeader(disposition, file.name),
-    "Accept-Ranges": "bytes",
-  });
+  const headers = new Headers({ "Content-Type": file.sourceMimeType || response.headers.get("content-type") || "application/octet-stream", "Cache-Control": "private, no-store", "Content-Disposition": dispositionHeader(disposition, file.name), "Accept-Ranges": "bytes" });
   for (const header of ["content-length", "content-range"]) {
     const value = response.headers.get(header);
     if (value) headers.set(header, value);
@@ -67,19 +59,53 @@ async function streamExternal(file: typeof logicalFiles.$inferSelect, rangeHeade
   return new Response(response.body, { status: response.status, headers });
 }
 
-export async function streamLogicalFile(fileId: string, rangeHeader: string | null, disposition: "attachment" | "inline" = "attachment") {
-  const db = getDb();
-  const file = (await db.select().from(logicalFiles).where(eq(logicalFiles.id, fileId)).limit(1))[0];
-  if (!file || file.status !== "ready" || file.trashedAt) return new Response("Not found", { status: 404 });
-  if (file.mimeType === "application/vnd.meshly.folder") return new Response("Folders cannot be downloaded directly", { status: 400 });
-  if (file.sourceKind === "external") return streamExternal(file, rangeHeader, disposition);
-
+async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, rangeHeader: string | null, disposition: "attachment" | "inline") {
   const requested = rangeOf(rangeHeader, file.size);
   if (!requested) return new Response("Invalid range", { status: 416, headers: { "Content-Range": `bytes */${file.size}` } });
+  if (requested.end < requested.start) return new Response(null, { status: 200 });
+  if (!file.wrappedFileKey || !file.encryptionNoncePrefix || !file.encryptionFramePlainBytes) return new Response("Encrypted file metadata is incomplete", { status: 409 });
+  const framePlainBytes = file.encryptionFramePlainBytes;
+  const db = getDb();
+  const rows = await db.select({ chunk: chunks, account: linkedAccounts }).from(chunks).innerJoin(linkedAccounts, eq(chunks.accountId, linkedAccounts.id)).where(eq(chunks.fileId, file.id)).orderBy(asc(chunks.part));
+  if (rows.length !== 1 || !rows[0]!.chunk.driveFileId || rows[0]!.chunk.status !== "ready") return new Response("Encrypted file is incomplete", { status: 409 });
+  const { chunk, account } = rows[0]!;
+  const access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted));
+  const rawKey = unwrapFileKey(file.wrappedFileKey, file.id);
+  const noncePrefix = Buffer.from(file.encryptionNoncePrefix, "base64url");
+  if (noncePrefix.length !== 8) return new Response("Encrypted file nonce metadata is invalid", { status: 409 });
+  const frameIndices = framesForPlainRange(file.size, requested.start, requested.end, framePlainBytes);
+  let frameCursor = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        if (frameCursor >= frameIndices.length) { controller.close(); return; }
+        const index = frameIndices[frameCursor++]!;
+        const layout = frameLayout(file.size, index, framePlainBytes, AES_GCM_TAG_BYTES);
+        const response = await downloadDriveFile(access, chunk.driveFileId!, `bytes=${layout.cipherOffset}-${layout.cipherOffset + layout.cipherSize - 1}`);
+        if (!response.ok) throw new Error(`Encrypted Drive frame download failed (${response.status})`);
+        const encrypted = new Uint8Array(await response.arrayBuffer());
+        if (encrypted.byteLength !== layout.cipherSize) throw new Error("Encrypted Drive frame length mismatch");
+        const plain = decryptManagedFrame({ rawKey, noncePrefix, fileId: file.id, fileSize: file.size, frameIndex: index, ciphertext: encrypted });
+        if (plain.byteLength !== layout.plainSize) throw new Error("Decrypted frame length mismatch");
+        const wantedStart = Math.max(requested.start, layout.plainOffset) - layout.plainOffset;
+        const wantedEnd = Math.min(requested.end + 1, layout.plainOffset + layout.plainSize) - layout.plainOffset;
+        controller.enqueue(plain.subarray(wantedStart, wantedEnd));
+      } catch (error) { controller.error(error); }
+    },
+  });
+  const length = requested.end - requested.start + 1;
+  const headers = new Headers({ "Content-Type": file.mimeType || "application/octet-stream", "Content-Length": String(length), "Accept-Ranges": "bytes", "Cache-Control": "private, no-store", "Content-Disposition": dispositionHeader(disposition, file.name), "X-Meshly-Encryption": "v1" });
+  if (requested.partial) headers.set("Content-Range", `bytes ${requested.start}-${requested.end}/${file.size}`);
+  return new Response(stream, { status: requested.partial ? 206 : 200, headers });
+}
+
+async function streamLegacyManaged(file: typeof logicalFiles.$inferSelect, rangeHeader: string | null, disposition: "attachment" | "inline") {
+  const requested = rangeOf(rangeHeader, file.size);
+  if (!requested) return new Response("Invalid range", { status: 416, headers: { "Content-Range": `bytes */${file.size}` } });
+  const db = getDb();
   const rows = await db.select({ chunk: chunks, account: linkedAccounts }).from(chunks).innerJoin(linkedAccounts, eq(chunks.accountId, linkedAccounts.id)).where(eq(chunks.fileId, file.id)).orderBy(asc(chunks.part));
   const relevant = rows.filter(({ chunk }) => chunk.offset <= requested.end && chunk.offset + chunk.size - 1 >= requested.start);
   if (!relevant.length || relevant.some((item) => !item.chunk.driveFileId || item.chunk.status !== "ready")) return new Response("File is incomplete", { status: 409 });
-
   let index = 0;
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   const tokenCache = new Map<string, string>();
@@ -89,46 +115,36 @@ export async function streamLogicalFile(fileId: string, rangeHeader: string | nu
         while (true) {
           if (reader) {
             const next = await reader.read();
-            if (!next.done) {
-              controller.enqueue(next.value);
-              return;
-            }
+            if (!next.done) { controller.enqueue(next.value); return; }
             reader = null;
             index++;
           }
-          if (index >= relevant.length) {
-            controller.close();
-            return;
-          }
-          const { chunk, account } = relevant[index];
+          if (index >= relevant.length) { controller.close(); return; }
+          const { chunk, account } = relevant[index]!;
           let access = tokenCache.get(account.id);
-          if (!access) {
-            access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted));
-            tokenCache.set(account.id, access);
-          }
+          if (!access) { access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted)); tokenCache.set(account.id, access); }
           const localStart = Math.max(requested.start, chunk.offset) - chunk.offset;
           const localEnd = Math.min(requested.end, chunk.offset + chunk.size - 1) - chunk.offset;
           const response = await downloadDriveFile(access, chunk.driveFileId!, `bytes=${localStart}-${localEnd}`);
           if (!response.ok || !response.body) throw new Error(`Drive chunk download failed (${response.status})`);
           reader = response.body.getReader();
         }
-      } catch (error) {
-        controller.error(error);
-      }
+      } catch (error) { controller.error(error); }
     },
-    cancel() {
-      void reader?.cancel();
-    },
+    cancel() { void reader?.cancel(); },
   });
-
   const length = requested.end - requested.start + 1;
-  const headers = new Headers({
-    "Content-Type": file.mimeType || "application/octet-stream",
-    "Content-Length": String(length),
-    "Accept-Ranges": "bytes",
-    "Cache-Control": "private, no-store",
-    "Content-Disposition": dispositionHeader(disposition, file.name),
-  });
+  const headers = new Headers({ "Content-Type": file.mimeType || "application/octet-stream", "Content-Length": String(length), "Accept-Ranges": "bytes", "Cache-Control": "private, no-store", "Content-Disposition": dispositionHeader(disposition, file.name) });
   if (requested.partial) headers.set("Content-Range", `bytes ${requested.start}-${requested.end}/${file.size}`);
   return new Response(stream, { status: requested.partial ? 206 : 200, headers });
+}
+
+export async function streamLogicalFile(fileId: string, rangeHeader: string | null, disposition: "attachment" | "inline" = "attachment") {
+  const db = getDb();
+  const file = (await db.select().from(logicalFiles).where(eq(logicalFiles.id, fileId)).limit(1))[0];
+  if (!file || file.status !== "ready" || file.trashedAt) return new Response("Not found", { status: 404 });
+  if (file.mimeType === "application/vnd.meshly.folder") return new Response("Folders cannot be downloaded directly", { status: 400 });
+  if (file.sourceKind === "external") return streamExternal(file, rangeHeader, disposition);
+  if (file.encryptionVersion === 1) return streamEncryptedManaged(file, rangeHeader, disposition);
+  return streamLegacyManaged(file, rangeHeader, disposition);
 }
