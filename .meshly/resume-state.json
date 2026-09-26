@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "project": "Meshly",
+  "repository": "cassielxyz/Meshly",
+  "activeBranch": "work/public-multicloud-encryption-story",
+  "activePullRequest": 4,
+  "resumeStatus": "active_task_verification_pending",
+  "lastStableCheckpoint": "docs/checkpoints/2026-09-27-google-upload-destination-ui.md",
+  "lastVerifiedRuntimeCommit": "7c0439576f0844e177568b5134398172487fd57f",
+  "lastVerifiedCiRun": "36265896346",
+  "requiredReads": [
+    "AGENTS.md",
+    "HANDOFF.md",
+    "NEXT_ACTION.md",
+    "CHECKPOINT.md",
+    ".meshly/project-state.json",
+    ".meshly/current-task.json",
+    ".meshly/resume-state.json",
+    "newest docs/checkpoints/*"
+  ],
+  "resumeProcedure": [
+    "inspect_current_main_and_active_branch_heads",
+    "inspect_open_pr_4_and_newest_ci",
+    "reconcile_repository_state_against_checkpoint_files",
+    "continue_the_first_unfinished_item_from_NEXT_ACTION_md",
+    "update_all_checkpoint_layers_after_the_next_verified_milestone"
+  ],
+  "exactNextAction": "Verify the newest PR #4 CI after the placement-account typing fix; on full success checkpoint and merge the public-story milestone.",
+  "notes": [
+    "repository_newer_than_checkpoint_files_wins",
+    "do_not_ask_the_user_to_reconstruct_lost_chat_context_when_repository_state_is_available",
+    "do_not_store_secrets_in_checkpoint_files"
+  ]
+}
