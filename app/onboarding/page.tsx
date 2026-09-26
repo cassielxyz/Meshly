@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Cloud, ShieldCheck, Sparkles } from "lucide-react";
 import { MeshlyLogo } from "@/components/brand/meshly-logo";
+import { PublicHeaderTools } from "@/components/public/public-header-tools";
 
 export const metadata = { title: "Welcome" };
 
@@ -12,16 +13,16 @@ const steps = [
 
 export default function OnboardingPage() {
   return (
-    <main className="min-h-screen bg-[var(--surface)] p-5 sm:p-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between gap-4">
-          <Link href="/" aria-label="Back to Meshly home" className="shrink-0">
-            <MeshlyLogo />
-          </Link>
-          <div data-meshly-header-actions className="flex min-h-9 items-center gap-2" />
-        </header>
+    <main className="min-h-screen bg-[var(--surface)]">
+      <header className="public-header sticky top-0 z-50 border-b border-[var(--border)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+          <Link href="/" aria-label="Back to Meshly home" className="shrink-0"><MeshlyLogo /></Link>
+          <PublicHeaderTools />
+        </div>
+      </header>
 
-        <section className="mesh-card mt-8 overflow-hidden">
+      <div className="mx-auto max-w-5xl p-5 sm:p-10">
+        <section className="mesh-card overflow-hidden">
           <div className="grid lg:grid-cols-[1.1fr_.9fr]">
             <div className="p-8 sm:p-12">
               <div className="text-sm font-semibold text-[var(--blue)]">GET STARTED</div>
@@ -33,10 +34,7 @@ export default function OnboardingPage() {
                   return (
                     <div key={String(title)} className="flex gap-4">
                       <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--surface-strong)]"><C size={20} /></div>
-                      <div>
-                        <h2 className="font-semibold">{String(title)}</h2>
-                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{String(body)}</p>
-                      </div>
+                      <div><h2 className="font-semibold">{String(title)}</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{String(body)}</p></div>
                     </div>
                   );
                 })}
@@ -52,10 +50,7 @@ export default function OnboardingPage() {
                 <div className="mt-6 text-4xl font-semibold tracking-[-.04em]">45.0 GB</div>
                 <div className="mt-2 text-sm text-[var(--muted)]">Across 3 connected accounts</div>
                 <div className="mt-7 h-3 overflow-hidden rounded-full bg-[#e9eef6]"><div className="h-full w-[44%] rounded-full bg-[var(--blue)]" /></div>
-                <div className="mt-7 grid gap-3 text-sm">
-                  <div className="flex justify-between"><span>Used</span><strong>19.7 GB</strong></div>
-                  <div className="flex justify-between"><span>Available</span><strong>25.3 GB</strong></div>
-                </div>
+                <div className="mt-7 grid gap-3 text-sm"><div className="flex justify-between"><span>Used</span><strong>19.7 GB</strong></div><div className="flex justify-between"><span>Available</span><strong>25.3 GB</strong></div></div>
               </div>
             </aside>
           </div>
