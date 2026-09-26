@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MeshlyLogo } from "@/components/brand/meshly-logo";
+import { PublicHeaderTools } from "@/components/public/public-header-tools";
 
 export const metadata = { title: "Sign in" };
 
@@ -8,10 +9,8 @@ export default function LoginPage() {
     <main className="gradient-mesh min-h-screen px-5 pb-8 sm:px-8">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col">
         <header className="flex items-center justify-between gap-4 py-5 sm:py-6">
-          <Link href="/" aria-label="Back to Meshly home" className="shrink-0">
-            <MeshlyLogo />
-          </Link>
-          <div data-meshly-header-actions className="flex min-h-9 items-center gap-2" />
+          <Link href="/" aria-label="Back to Meshly home" className="shrink-0"><MeshlyLogo /></Link>
+          <PublicHeaderTools />
         </header>
 
         <div className="flex flex-1 items-center justify-center py-8">
