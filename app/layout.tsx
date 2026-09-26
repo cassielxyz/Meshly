@@ -13,7 +13,7 @@ const bodoni = Bodoni_Moda({
 
 export const metadata: Metadata = {
   title: { default: "Meshly", template: "%s · Meshly" },
-  description: "One workspace for multiple Google Drive storage accounts.",
+  description: "One workspace across your connected cloud storage, with encrypted managed files and provider-aware transfers.",
   applicationName: "Meshly",
   icons: { icon: "/brand/meshly-mark.svg" },
 };

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project": "Meshly",
   "environment": "production-candidate",
   "testedAt": "YYYY-MM-DDTHH:mm:ssZ",
@@ -11,9 +11,11 @@
   "tests": [
     { "id": "oauth_login", "required": true, "status": "pending", "notes": "" },
     { "id": "second_account", "required": true, "status": "pending", "notes": "" },
-    { "id": "small_round_trip", "required": true, "status": "pending", "notes": "" },
-    { "id": "cross_account_round_trip", "required": true, "status": "pending", "notes": "Record only non-sensitive test size/hash evidence." },
-    { "id": "resumable_resume", "required": true, "status": "pending", "notes": "" },
+    { "id": "small_encrypted_round_trip", "required": true, "status": "pending", "notes": "Record only non-sensitive size/hash evidence." },
+    { "id": "auto_account_round_trip", "required": true, "status": "pending", "notes": "Whole managed file must land in one healthy Google account." },
+    { "id": "selected_account_round_trip", "required": true, "status": "pending", "notes": "Whole managed file must land in the explicitly selected healthy Google account." },
+    { "id": "ciphertext_object_inspection", "required": true, "status": "pending", "notes": "Do not record provider object IDs, private URLs, credentials, or plaintext keys." },
+    { "id": "resumable_encrypted_resume", "required": true, "status": "pending", "notes": "" },
     { "id": "integrity_scan", "required": true, "status": "pending", "notes": "" },
     { "id": "recovery_rehearsal", "required": true, "status": "pending", "notes": "" },
     { "id": "share_controls", "required": true, "status": "pending", "notes": "" },

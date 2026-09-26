@@ -1,28 +1,34 @@
 {
   "schemaVersion": 1,
   "project": "Meshly",
-  "taskId": "public-multicloud-encryption-story",
-  "title": "Refresh public product story for multicloud encrypted storage",
-  "branch": "work/public-multicloud-encryption-story",
-  "pullRequest": 4,
+  "taskId": "production-readiness-cleanup",
+  "title": "Remove stale Google sharding guidance and add public legal pages",
+  "branch": "work/production-readiness-cleanup",
+  "pullRequest": 5,
   "status": "milestone_verified_merge_pending",
   "checkpointDate": "2026-09-27",
-  "baseMainCommit": "dc234a896ac5a835271940f4d1113cd2eb6a87ec",
-  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
-  "lastVerifiedCiRun": "36268194577",
+  "baseMainCommit": "654727bbd4963c1df7f90f721f219bcf3e4db7f3",
+  "lastVerifiedRuntimeCommit": "71e164814de83d858d744d987b54443ef0019f95",
+  "lastVerifiedCiRun": "36268994840",
   "completedOnTask": [
-    "rewrite_landing_for_google_drives_other_clouds_and_encryption",
-    "replace_google_cross_account_split_scroll_visual",
-    "rewrite_demo_to_connect_choose_encrypt_transfer_verify",
-    "remove_demo_fixture_cross_account_file_claim",
-    "fix_placement_account_selected_union_typing",
+    "align_readme_current_status_and_roadmap",
+    "update_production_testing_for_encrypted_auto_manual_google_round_trips",
+    "update_deployment_for_encrypted_whole_file_google_model",
+    "update_integration_evidence_template",
+    "expand_security_documentation",
+    "add_public_privacy_page",
+    "add_public_terms_page",
+    "add_legal_links_to_public_footer",
+    "update_root_product_metadata",
+    "replace_split_google_storage_flow_asset",
+    "refresh_multicloud_encrypted_storage_banner",
     "full_ci_gate_passed",
-    "add_durable_active_work_checkpoint_layers"
+    "checkpoint_verified_milestone"
   ],
   "remaining": [
     "verify_checkpoint_only_ci",
-    "merge_pr_4",
-    "start_repository_wide_obsolete_google_pooling_sharding_copy_cleanup"
+    "merge_pr_5",
+    "continue_production_configuration_and_live_verification"
   ],
   "blockers": [
     "production_credentials_and_database_are_not_configured_for_real_provider_verification"

@@ -4,38 +4,43 @@
 
 **Updated:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `work/public-multicloud-encryption-story`  
-**Active PR:** `#4`  
-**Verified runtime commit:** `c4cbebb0541637d1608f7372f9accb45366a5d74`  
-**Verified CI run:** `36268194577`
+**Active branch:** `work/production-readiness-cleanup`  
+**Active PR:** `#5`  
+**Verified runtime commit:** `71e164814de83d858d744d987b54443ef0019f95`  
+**Verified CI run:** `36268994840`
 
 ## Active task
 
-The public multicloud/encrypted-storage story is implemented and the full CI gate has passed. The current branch now contains:
+The production-readiness cleanup + legal-pages implementation is complete and the full CI gate passed.
 
-- landing copy/visuals aligned to Google Drives + Other Clouds;
-- Google whole-file Auto/manual destination messaging;
-- encrypt → route → verify scroll story;
-- five-step demo: Connect → Choose destination → Encrypt → Transfer → Verify & ready;
-- demo fixtures that no longer claim a Google-managed file spans accounts;
-- durable active-work checkpoint files in addition to canonical milestone checkpoints.
+Verified work includes:
+
+- stale Google cross-account production test/deployment guidance removed;
+- README/current roadmap aligned with whole-file Google placement and encrypted managed files;
+- production evidence template upgraded for Auto/manual encrypted Google round trips and ciphertext inspection;
+- security policy expanded for encrypted managed-file trust boundaries;
+- public `/privacy` and `/terms` routes implemented with reusable legal-page UI;
+- public footer exposes Privacy and Terms;
+- root metadata updated for multi-cloud encrypted storage;
+- old split-Google storage-flow asset replaced with encrypted provider-aware flow;
+- README banner refreshed for multi-cloud encrypted storage.
 
 ## Verification state
 
-GitHub Actions run `36268194577` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `c4cbebb0541637d1608f7372f9accb45366a5d74`.
+GitHub Actions run `36268994840` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `71e164814de83d858d744d987b54443ef0019f95`.
 
 This proves code/CI only. Real production database/OAuth/provider behavior remains pending.
 
 ## Exact next action
 
-1. Let the checkpoint-only commit for this verified milestone pass CI.
-2. Merge PR #4 into `main`.
-3. Create/continue the next cleanup task from fresh `main` and scan the product/docs for obsolete public Google pooling/sharding/split-across-accounts claims.
-4. Then add/verify public Privacy + Terms routes/links before production OAuth/deployment configuration.
+1. Let the checkpoint-only commit for this milestone pass CI.
+2. Merge PR #5 into `main`.
+3. Continue production PostgreSQL/OAuth/environment/deployment configuration without committing or pasting secrets.
+4. Run production preflight and then the required real encrypted Google Auto/manual round-trip, ciphertext inspection, resume, integrity, recovery, sharing, cron and smoke tests.
 
 ## Blockers outside code
 
-Production PostgreSQL, environment/OAuth credentials and live provider verification are not configured yet. Never place those secrets in repository checkpoint files or chat.
+Real production PostgreSQL credentials, OAuth client secret and application secrets must be configured outside the repository. Never place them in checkpoint files, issues, screenshots or chat.
 
 ## Invariants
 
