@@ -1,12 +1,12 @@
 # Meshly — next action
 
-This file is intentionally short. `CHECKPOINT.md` records the last verified milestone; `HANDOFF.md` records current work.
+`CHECKPOINT.md` records the last verified milestone; `HANDOFF.md` records the active branch/PR.
 
 ## Do this next
 
-Verify the newest GitHub Actions run for **PR #4 / `work/public-multicloud-encryption-story`** after the placement-account TypeScript fix.
+1. Verify the checkpoint-only CI run on **PR #4 / `work/public-multicloud-encryption-story`**.
+2. If green, merge PR #4.
+3. From fresh `main`, scan and remove remaining obsolete **public Google pooled/sharded/split-across-accounts** claims while preserving valid generic provider-capability split code/docs.
+4. Next, add/verify public Privacy and Terms pages/links for OAuth and deployment readiness.
 
-- If CI fails: fix the failing gate only, then verify again.
-- If CI passes: checkpoint the public multicloud/encryption story, merge PR #4, then scan and remove remaining obsolete public Google pooling/sharding copy.
-
-Do **not** move on to production credentials or provider adapters until this public-story milestone is green and checkpointed.
+Do not start live production verification until the cleanup/pre-production web surface is checkpointed.

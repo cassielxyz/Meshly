@@ -1,13 +1,13 @@
 # Meshly — canonical continuation checkpoint
 
-> **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `.meshly/project-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits always win over this document.
+> **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits always win over this document.
 
 **Checkpoint date:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime commit:** `7c0439576f0844e177568b5134398172487fd57f`  
-**Latest verified CI run:** `36265896346`  
-**Latest milestone record:** `docs/checkpoints/2026-09-27-google-upload-destination-ui.md`
+**Latest verified runtime commit:** `c4cbebb0541637d1608f7372f9accb45366a5d74`  
+**Latest verified CI run:** `36268194577`  
+**Latest milestone record:** `docs/checkpoints/2026-09-27-public-multicloud-encryption-story.md`
 
 ## Current state
 
@@ -15,7 +15,9 @@ Meshly is a provider-independent multi-cloud workspace with separate **Google Dr
 
 Every **new Meshly-managed upload** uses encryption v1 before provider storage. Existing legacy managed files and externally indexed Drive files remain readable for compatibility.
 
-The Google upload UI now lets the user choose **Auto choose** or a specific healthy connected Google account. The choice applies to both file and folder uploads. Remaining public landing/demo content still needs to be updated to the new product model.
+The Google upload UI supports **Auto choose** or a specific healthy connected Google account for both file and folder uploads. The public landing page and `/demo` now match this architecture: they show Google whole-file destination selection, separate Other Clouds, and the managed-file encrypt → transfer → verify flow instead of the former cross-account Google split story.
+
+Meshly now also has a richer durable continuation layer for interrupted AI sessions: verified milestone state is separated from active branch/task state through `HANDOFF.md`, `NEXT_ACTION.md`, `.meshly/current-task.json`, and `.meshly/resume-state.json`.
 
 Production database/credentials/deployed provider verification are still pending. Do not treat CI as proof of a live Google round trip.
 
@@ -35,14 +37,21 @@ Production database/credentials/deployed provider verification are still pending
   - per-account free-space/status display;
   - selected destination applied to files and folder uploads;
   - unhealthy accounts cannot be selected;
-  - UI wording describes Google capacity as storage across connected accounts rather than one sharded pool;
   - encrypted upload progress is explicit.
+- Public landing/demo architecture refresh:
+  - removes the former Google pooled/sharded-file story;
+  - shows Google Drives and Other Clouds as separate product areas;
+  - shows one Google managed file going to one account;
+  - explains encryption-before-provider-storage without calling the design zero-knowledge;
+  - replaces split-range motion with encrypt → route → verify;
+  - demo flow is Connect → Choose destination → Encrypt → Transfer → Verify & ready;
+  - demo fixtures no longer claim a Google file spans accounts.
+- Durable checkpoint system with verified-state and active-work layers.
 - Provider/encryption/manifest layers remain reusable for a future Android client.
-- Durable AI continuation/checkpoint system.
 
 ## Verification already completed
 
-GitHub Actions run `36265896346` for runtime commit `7c0439576f0844e177568b5134398172487fd57f` passed:
+GitHub Actions run `36268194577` for runtime/checkpoint commit `c4cbebb0541637d1608f7372f9accb45366a5d74` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -79,8 +88,8 @@ Cloud providers receive ciphertext for new managed files, but the Meshly backend
 
 ## Next actions — do these in order
 
-1. Update landing page and `/demo` away from the old Google cross-account split story and show **Google Drives + Other Clouds + mandatory encrypted storage**.
-2. Remove any remaining old pooled/split-Google copy or visuals elsewhere in the product/docs.
+1. Scan the product and docs for remaining obsolete **Google pooled/sharded/split-across-accounts** public copy or visuals and correct only stale claims; preserve generic provider-capability split logic where valid.
+2. Add/verify production-facing public Privacy and Terms pages/links needed for OAuth branding and deployment readiness.
 3. Finish production PostgreSQL and run migrations through `0005_managed_file_encryption.sql`.
 4. Finish production env/OAuth and deploy.
 5. Run real encrypted Google upload/download SHA-256 round trips for both Auto and explicitly selected accounts; inspect the remote object for opaque ciphertext/name.
@@ -97,8 +106,9 @@ Cloud providers receive ciphertext for new managed files, but the Meshly backend
 - Recovery manifests never contain OAuth refresh tokens or plaintext file keys.
 - Google managed files stay whole in one account; do not re-enable Google cross-account sharding.
 - Transport multipart/chunking is not the same as persistent distributed storage parts.
+- Generic distributed storage parts require explicit provider capability/opt-in.
 - Provider limits and terms must be respected; do not implement paid-feature, quota, ad or rate-limit bypasses.
-- Prefer supported official APIs/SDKs for production provider adapters.
+- Prefer supported official provider APIs/SDKs for production provider adapters.
 - Never expose a logical file as ready before its required physical encrypted object verifies.
 - Do not disconnect storage while managed objects depend on it.
 - Provider adapters are capability/test gated before activation.
@@ -107,4 +117,4 @@ Cloud providers receive ciphertext for new managed files, but the Meshly backend
 
 ## Continuation prompt
 
-> Open `cassielxyz/Meshly`. Read `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, and the newest `docs/checkpoints/*`. Inspect newer commits/PRs/CI. Continue from the first unfinished Next action. Preserve mandatory encryption v1 for new managed files and do not restore Google cross-account sharding.
+> Open `cassielxyz/Meshly`. Read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest `docs/checkpoints/*`. Inspect newer main/branch commits, PRs and CI. Continue from the first unfinished action. Preserve mandatory encryption v1 for new managed files and never restore Google cross-account sharding.

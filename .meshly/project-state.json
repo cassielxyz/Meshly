@@ -4,16 +4,20 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "multicloud_encrypted_storage_expansion",
-  "status": "google_destination_ui_ci_verified_public_story_and_real_integration_next",
+  "status": "public_multicloud_encryption_story_ci_verified_cleanup_and_production_readiness_next",
   "checkpointDate": "2026-09-27",
-  "generatedFromCommit": "7c0439576f0844e177568b5134398172487fd57f",
-  "lastVerifiedRuntimeCommit": "7c0439576f0844e177568b5134398172487fd57f",
-  "lastVerifiedCiRun": "36265896346",
+  "generatedFromCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
+  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
+  "lastVerifiedCiRun": "36268194577",
   "requiredReads": [
     "AGENTS.md",
+    "HANDOFF.md",
+    "NEXT_ACTION.md",
     "CHECKPOINT.md",
     ".meshly/project-state.json",
-    "docs/checkpoints/2026-09-27-google-upload-destination-ui.md",
+    ".meshly/current-task.json",
+    ".meshly/resume-state.json",
+    "docs/checkpoints/2026-09-27-public-multicloud-encryption-story.md",
     "ARCHITECTURE.md",
     "docs/OPEN_SOURCE_STORAGE_REFERENCES.md"
   ],
@@ -46,9 +50,12 @@
     "google_manual_or_auto_destination_selector_ui",
     "google_destination_applies_to_file_and_folder_uploads",
     "google_account_free_space_and_health_in_upload_menu",
-    "removed_sidebar_storage_pool_wording",
     "encrypted_upload_progress_ui",
-    "durable_ai_checkpoint_protocol"
+    "public_landing_multicloud_encryption_story",
+    "public_demo_connect_choose_encrypt_transfer_verify_story",
+    "public_google_cross_account_split_visual_removed",
+    "demo_fixture_cross_account_file_claim_removed",
+    "durable_verified_and_active_work_checkpoint_layers"
   ],
   "verifiedByCI": [
     "frozen_dependency_install",
@@ -60,7 +67,9 @@
     "next_production_build",
     "multicloud_provider_foundation",
     "mandatory_managed_file_encryption_v1",
-    "google_upload_destination_ui"
+    "google_upload_destination_ui",
+    "public_multicloud_encryption_story",
+    "durable_active_work_checkpoint_system"
   ],
   "pendingIntegration": [
     "production_postgres_migrations_through_0005",
@@ -81,8 +90,8 @@
     "full_drive_scope_index_and_change_sync_if_enabled"
   ],
   "nextActions": [
-    "update_public_landing_and_demo_for_google_drives_other_clouds_and_encryption",
-    "remove_remaining_old_split_google_copy_and_visuals",
+    "remove_remaining_obsolete_public_google_pooling_or_sharding_copy_and_visuals",
+    "add_or_verify_public_privacy_and_terms_pages_for_oauth_and_deployment_readiness",
     "run_production_database_migrations_through_0005",
     "finish_production_oauth_and_environment_configuration",
     "deploy_and_run_encrypted_google_auto_and_selected_account_round_trip_verification",

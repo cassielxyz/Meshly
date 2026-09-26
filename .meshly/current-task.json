@@ -5,23 +5,24 @@
   "title": "Refresh public product story for multicloud encrypted storage",
   "branch": "work/public-multicloud-encryption-story",
   "pullRequest": 4,
-  "status": "verification_pending",
+  "status": "milestone_verified_merge_pending",
   "checkpointDate": "2026-09-27",
   "baseMainCommit": "dc234a896ac5a835271940f4d1113cd2eb6a87ec",
-  "lastVerifiedRuntimeCommit": "7c0439576f0844e177568b5134398172487fd57f",
-  "lastVerifiedCiRun": "36265896346",
+  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
+  "lastVerifiedCiRun": "36268194577",
   "completedOnTask": [
     "rewrite_landing_for_google_drives_other_clouds_and_encryption",
     "replace_google_cross_account_split_scroll_visual",
     "rewrite_demo_to_connect_choose_encrypt_transfer_verify",
     "remove_demo_fixture_cross_account_file_claim",
-    "fix_placement_account_selected_union_typing"
+    "fix_placement_account_selected_union_typing",
+    "full_ci_gate_passed",
+    "add_durable_active_work_checkpoint_layers"
   ],
   "remaining": [
-    "verify_full_pr_ci_after_typing_fix",
-    "checkpoint_verified_public_story_milestone",
+    "verify_checkpoint_only_ci",
     "merge_pr_4",
-    "scan_and_remove_remaining_obsolete_public_google_pooling_or_sharding_copy"
+    "start_repository_wide_obsolete_google_pooling_sharding_copy_cleanup"
   ],
   "blockers": [
     "production_credentials_and_database_are_not_configured_for_real_provider_verification"
