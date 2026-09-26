@@ -19,6 +19,7 @@ import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "mo
 import { useRef } from "react";
 import { MeshlyLogo } from "@/components/brand/meshly-logo";
 import { LivePlacementMap } from "@/components/marketing/live-placement-map";
+import { PublicHeaderTools } from "@/components/public/public-header-tools";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -128,35 +129,54 @@ function ProductPreview() {
   );
 }
 
+function StoryCopy() {
+  const reduceMotion = useReducedMotion();
+  return (
+    <div className="max-w-xl">
+      <div className="text-xs font-semibold uppercase tracking-[.18em] text-[#8ab4f8]">One logical file · many storage nodes</div>
+      <h2 className="mt-5 text-4xl font-semibold tracking-[-.055em] sm:text-5xl">The complexity moves underneath the interface.</h2>
+      <p className="mt-5 max-w-lg text-base leading-7 text-white/62">Meshly plans storage, creates safe byte ranges, uploads to the right accounts and reconstructs the original stream later. The user keeps working with one filename in one folder.</p>
+      <div className="mt-8 grid gap-3">
+        {["Keep the file whole when one account safely fits it", "Split deterministic byte ranges only when capacity requires it", "Verify every physical part before the logical file becomes ready"].map((text, index) => (
+          <motion.div key={text} initial={reduceMotion ? false : { opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.7 }} transition={{ delay: index * 0.09, duration: 0.55, ease: EASE }} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[.035] px-4 py-3 text-sm text-white/75 backdrop-blur-sm">
+            <Check size={17} className="mt-0.5 shrink-0 text-[#81c995]" />{text}
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ScrollStory() {
   const ref = useRef<HTMLElement | null>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const smooth = useSpring(scrollYProgress, { stiffness: 105, damping: 26, mass: 0.45 });
-  const glowLeftY = useTransform(smooth, [0, 1], [60, -50]);
-  const glowRightY = useTransform(smooth, [0, 1], [-50, 65]);
+  const smooth = useSpring(scrollYProgress, { stiffness: 72, damping: 28, mass: 0.8 });
+  const glowLeftY = useTransform(smooth, [0, 1], [48, -38]);
+  const glowRightY = useTransform(smooth, [0, 1], [-38, 48]);
 
   return (
-    <section ref={ref} id="architecture" className="relative min-h-[170vh] bg-[#0f172a] text-white">
-      <div className="sticky top-0 flex min-h-screen items-center overflow-hidden px-5 py-24 sm:px-8">
-        <div className="deep-grid pointer-events-none absolute inset-0 opacity-60" />
-        <motion.div style={reduceMotion ? undefined : { y: glowLeftY }} className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#4285F4]/20 blur-[90px]" />
-        <motion.div style={reduceMotion ? undefined : { y: glowRightY }} className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-[#34A853]/15 blur-[90px]" />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[.86fr_1.14fr] lg:items-center">
-          <div className="max-w-xl">
-            <div className="text-xs font-semibold uppercase tracking-[.18em] text-[#8ab4f8]">One logical file · many storage nodes</div>
-            <h2 className="mt-5 text-4xl font-semibold tracking-[-.055em] sm:text-5xl">The complexity moves underneath the interface.</h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-white/62">Meshly plans storage, creates safe byte ranges, uploads to the right accounts and reconstructs the original stream later. The user keeps working with one filename in one folder.</p>
-            <div className="mt-8 grid gap-3">
-              {["Keep the file whole when one account safely fits it", "Split deterministic byte ranges only when capacity requires it", "Verify every physical part before the logical file becomes ready"].map((text, index) => (
-                <motion.div key={text} initial={reduceMotion ? false : { opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.7 }} transition={{ delay: index * 0.09, duration: 0.55, ease: EASE }} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[.035] px-4 py-3 text-sm text-white/75 backdrop-blur-sm">
-                  <Check size={17} className="mt-0.5 shrink-0 text-[#81c995]" />{text}
-                </motion.div>
-              ))}
-            </div>
-          </div>
+    <section ref={ref} id="architecture" className="relative overflow-clip bg-[#0d1528] text-white">
+      <div className="deep-grid pointer-events-none absolute inset-0 opacity-55" />
+      <motion.div style={reduceMotion ? undefined : { y: glowLeftY }} className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#4285F4]/16 blur-[100px]" />
+      <motion.div style={reduceMotion ? undefined : { y: glowRightY }} className="pointer-events-none absolute -right-20 bottom-20 h-72 w-72 rounded-full bg-[#b58cff]/10 blur-[100px]" />
 
+      <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-20 sm:px-8 lg:hidden">
+        <StoryCopy />
+      </div>
+
+      <div data-placement-scroll-root className="relative min-h-[260svh] lg:hidden">
+        <div className="sticky top-[72px] flex min-h-[calc(100svh-72px)] items-center px-4 py-5 sm:px-6">
           <LivePlacementMap />
+        </div>
+      </div>
+
+      <div data-placement-scroll-root className="relative hidden min-h-[280vh] lg:block">
+        <div className="sticky top-0 flex min-h-screen items-center px-8 py-24">
+          <div className="relative mx-auto grid w-full max-w-7xl gap-12 lg:grid-cols-[.86fr_1.14fr] lg:items-center">
+            <StoryCopy />
+            <LivePlacementMap />
+          </div>
         </div>
       </div>
     </section>
@@ -171,32 +191,36 @@ export function LandingPage() {
   return (
     <main className="overflow-x-clip">
       <motion.div className="fixed inset-x-0 top-0 z-[70] h-[2px] origin-left bg-[var(--blue)]" style={{ scaleX: progress }} />
-      <header className="sticky top-0 z-50 border-b border-black/[.035] bg-white/82 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <header className="public-header sticky top-0 z-50 border-b border-[var(--border)] backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3.5 sm:px-8 sm:py-4">
           <MeshlyLogo />
           <nav className="hidden items-center gap-7 text-sm text-[var(--muted)] md:flex">
             <a className="transition-colors hover:text-[var(--foreground)]" href="#features">Features</a>
             <a className="transition-colors hover:text-[var(--foreground)]" href="#architecture">How it works</a>
             <Link className="transition-colors hover:text-[var(--foreground)]" href="/demo">Demo</Link>
           </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/login" className="focus-ring hidden rounded-full px-4 py-2 text-sm font-medium sm:inline-flex">Sign in</Link>
-            <Link href="/onboarding" className="focus-ring rounded-full bg-[var(--blue)] px-5 py-2.5 text-sm font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5">Get started</Link>
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <Link href="/login" className="focus-ring hidden rounded-full px-3 py-2 text-sm font-medium lg:inline-flex">Sign in</Link>
+            <PublicHeaderTools />
+            <Link href="/onboarding" className="focus-ring rounded-full bg-[var(--blue)] px-4 py-2.5 text-[13px] font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5 sm:px-5 sm:text-sm">Get started</Link>
           </div>
         </div>
       </header>
 
-      <section className="gradient-mesh relative px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24">
-        <div className="hero-grid pointer-events-none absolute inset-0 opacity-60" />
-        <motion.div animate={reduceMotion ? undefined : { y: [0, -10, 0], x: [0, 5, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute left-[8%] top-28 h-44 w-44 rounded-full bg-[#4285F4]/10 blur-3xl" />
-        <motion.div animate={reduceMotion ? undefined : { y: [0, 12, 0], x: [0, -5, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute right-[9%] top-20 h-48 w-48 rounded-full bg-[#34A853]/10 blur-3xl" />
+      <section className="hero-mesh relative px-5 pb-20 pt-14 sm:px-8 sm:pb-28 sm:pt-24">
+        <div className="hero-grid pointer-events-none absolute inset-0 opacity-45" />
+        <motion.div animate={reduceMotion ? undefined : { y: [0, -8, 0], x: [0, 4, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute left-[8%] top-28 h-40 w-40 rounded-full bg-[#8ab4f8]/8 blur-3xl" />
+        <motion.div animate={reduceMotion ? undefined : { y: [0, 10, 0], x: [0, -4, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute right-[9%] top-20 h-44 w-44 rounded-full bg-[#d8a4ff]/10 blur-3xl" />
         <div className="relative mx-auto max-w-7xl text-center">
-          <motion.div initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="mx-auto inline-flex items-center gap-2 rounded-full border border-[#dbe4ef] bg-white/78 px-4 py-2 text-xs font-semibold shadow-sm backdrop-blur-xl"><span className="h-2 w-2 rounded-full bg-[var(--green)]" />Unified Google Drive storage</motion.div>
-          <motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.72, ease: EASE }} className="mx-auto mt-7 max-w-5xl text-5xl font-semibold leading-[.98] tracking-[-.065em] sm:text-7xl">All your storage.<br /><span className="meshly-editorial-gradient mt-1 text-[1.04em] sm:mt-2 sm:text-[1.02em]">One Meshly workspace.</span></motion.h1>
-          <motion.p initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.7, ease: EASE }} className="mx-auto mt-7 max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">Connect multiple Google accounts, pool their available storage, and manage every file through a single Drive-like interface.</motion.p>
+          <motion.div initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }} className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_82%,transparent)] px-4 py-2 text-xs font-semibold shadow-sm backdrop-blur-xl"><span className="h-2 w-2 rounded-full bg-[var(--green)]" />Unified Google Drive storage</motion.div>
+          <motion.h1 initial={reduceMotion ? false : { opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.72, ease: EASE }} className="hero-title mx-auto mt-8 max-w-5xl text-5xl font-semibold leading-[.96] tracking-[-.06em] sm:text-7xl">
+            <span className="block">All your storage.</span>
+            <span className="meshly-editorial-gradient block">One Meshly workspace.</span>
+          </motion.h1>
+          <motion.p initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12, duration: 0.7, ease: EASE }} className="mx-auto mt-8 max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">Connect multiple Google accounts, pool their available storage, and manage every file through a single Drive-like interface.</motion.p>
           <motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.66, ease: EASE }} className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/onboarding" className="focus-ring inline-flex items-center gap-2 rounded-full bg-[var(--blue)] px-6 py-3 font-semibold text-white transition-transform duration-200 hover:-translate-y-0.5">Create your workspace <ArrowRight size={18} /></Link>
-            <Link href="/demo" className="focus-ring inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-6 py-3 font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"><Play size={16} fill="currentColor" /> Watch interactive demo</Link>
+            <Link href="/demo" className="focus-ring inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)] px-6 py-3 font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"><Play size={16} fill="currentColor" /> Watch interactive demo</Link>
           </motion.div>
           <ProductPreview />
         </div>
