@@ -238,7 +238,12 @@ async function ensureFolder(name: string, parentId: string | null) {
   return exact.id;
 }
 
-export async function uploadMeshlyFolder(files: FileList, parentId: string | null, onFile?: (name: string, index: number, total: number, progress: Progress) => void) {
+export async function uploadMeshlyFolder(
+  files: FileList,
+  parentId: string | null,
+  onFile?: (name: string, index: number, total: number, progress: Progress) => void,
+  accountId?: string,
+) {
   const all = Array.from(files);
   const folders = new Map<string, string>();
   for (let index = 0; index < all.length; index++) {
@@ -257,7 +262,7 @@ export async function uploadMeshlyFolder(files: FileList, parentId: string | nul
       }
       current = id;
     }
-    await uploadMeshlyFile(file, (progress) => onFile?.(file.name, index + 1, all.length, progress), current);
+    await uploadMeshlyFile(file, (progress) => onFile?.(file.name, index + 1, all.length, progress), current, accountId);
   }
   return { files: all.length, folders: folders.size };
 }
