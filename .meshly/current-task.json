@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "project": "Meshly",
+  "taskId": "public-multicloud-encryption-story",
+  "title": "Refresh public product story for multicloud encrypted storage",
+  "branch": "work/public-multicloud-encryption-story",
+  "pullRequest": 4,
+  "status": "milestone_verified_merge_pending",
+  "checkpointDate": "2026-09-27",
+  "baseMainCommit": "dc234a896ac5a835271940f4d1113cd2eb6a87ec",
+  "lastVerifiedRuntimeCommit": "c4cbebb0541637d1608f7372f9accb45366a5d74",
+  "lastVerifiedCiRun": "36268194577",
+  "completedOnTask": [
+    "rewrite_landing_for_google_drives_other_clouds_and_encryption",
+    "replace_google_cross_account_split_scroll_visual",
+    "rewrite_demo_to_connect_choose_encrypt_transfer_verify",
+    "remove_demo_fixture_cross_account_file_claim",
+    "fix_placement_account_selected_union_typing",
+    "full_ci_gate_passed",
+    "add_durable_active_work_checkpoint_layers"
+  ],
+  "remaining": [
+    "verify_checkpoint_only_ci",
+    "merge_pr_4",
+    "start_repository_wide_obsolete_google_pooling_sharding_copy_cleanup"
+  ],
+  "blockers": [
+    "production_credentials_and_database_are_not_configured_for_real_provider_verification"
+  ],
+  "invariants": [
+    "google_managed_files_are_whole_file_only_in_one_google_account",
+    "every_new_managed_file_uses_encryption_v1",
+    "current_encryption_is_backend_trusted_not_zero_knowledge",
+    "provider_limits_and_terms_must_be_respected",
+    "repository_newer_than_checkpoint_wins"
+  ]
+}
