@@ -1,105 +1,37 @@
 # Meshly — canonical continuation checkpoint
 
-> **READ THIS BEFORE CONTINUING THE PROJECT.** Also read `AGENTS.md`, `.meshly/project-state.json`, and the newest file in `docs/checkpoints/` before changing code.
+> **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `.meshly/project-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits always win over this document.
 
 **Checkpoint date:** 2026-09-26  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime/UI commit:** `18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db`  
-**Latest milestone record:** `docs/checkpoints/2026-09-26-public-dark-mode-source-credit-complete.md`
+**Latest verified runtime/UI commit:** `a832639fc25facc4e666e26adef7bf7cc89009f2`  
+**Latest verified CI run:** `36245925428`  
+**Latest milestone record:** `docs/checkpoints/2026-09-26-header-mounted-controls-complete.md`
 
-## Current project state
+## Current state
 
-Meshly is production-code complete and is now in the **credentials + deployment + real integration verification** phase.
+Meshly is **production-code complete** and remains in the **credentials + deployment + real integration verification** phase.
 
-Do **not** restart the product build, storage engine, security hardening, production preflight tooling, dependency hardening, checkpoint system, interactive demo, landing-motion redesign, editorial hero treatment, scroll-scrubbed Live Placement Map, public dark mode, source control, or footer credit work. Newer repository commits always take precedence over this checkpoint.
+Do **not** restart or rebuild completed product work unless deployed testing proves a real issue. The implementation already includes the unified logical filesystem, multi-account storage pool, cross-account file splitting/reconstruction, resumable Google Drive uploads, recovery/integrity/sharing flows, security hardening, CI, production preflight, interactive demo, dark mode, editorial hero, scroll-scrubbed placement story, footer credit, and durable checkpoint system.
 
-## Completed in code
+## Latest UI behavior — locked unless a verified issue appears
 
-### Product / UI
+- `One Meshly workspace.` uses Bodoni Moda italic with the pink → lavender editorial gradient.
+- The Live Placement Map is driven by **real scroll progress**, not a time loop.
+- Scrolling backward reverses the placement sequence.
+- The split animation uses extended scroll distance and softened spring timing for slower, smoother motion.
+- Public light/dark mode is persistent.
+- GitHub/source and theme controls are compact.
+- **GitHub/source and theme controls must live inside the public page header. They must not float fixed over page content.**
+- Landing and demo controls mount into their existing header action groups.
+- Onboarding and login now have proper headers with Meshly branding on the left and the controls on the right.
+- Onboarding `Explore demo workspace` routes to `/demo`.
+- Public pages use one centered editorial cassiel footer signature with the GitHub profile link.
 
-- Original Meshly branding with Google-productivity-inspired color language.
-- Responsive light-first Drive-style workspace with dark theme tokens.
-- Landing, login, onboarding, My Drive/folders, search, recent, starred, shared, trash, storage, accounts, transfers, activity, integrity, recovery, notifications, diagnostics, help, privacy, profile, settings, public-share, error and 404 states.
-- Live logical item browser with breadcrumbs/search and list/grid workflows.
-- Folder/file creation and upload, rename, move, copy, star, trash, restore and permanent delete.
-- Public `/demo` route using simulated data only; no credentials required.
-- Demo walkthrough covers connect → pool capacity → placement planning → cross-account split → resumable upload → verified reconstruction.
-- Demo includes auto-play, pause/play, direct step selection, back/next controls and onboarding CTA.
-- Landing demo links point to `/demo` instead of the authenticated `/drive` route.
-- Landing visual cleanup removed emoji/generic mock artifacts and replaced them with consistent product icons/surfaces.
-- Landing motion includes scroll progress, staged reveals, restrained hover motion and a pinned storage-placement story.
-- Motion is transform/opacity-first with `prefers-reduced-motion` fallbacks.
-- Hero subtitle `One Meshly workspace.` uses Bodoni Moda italic editorial typography with a soft pink → lavender gradient, tuned tracking/line-height and restrained glow.
-- Live Placement Map has aligned header text, balanced control placement and equal destination-card geometry.
-- The placement story is true scroll-scrubbed motion, not viewport-triggered autoplay or a time loop.
-- Scroll progress is derived from the actual `#architecture` section travel distance.
-- The 14.2 GB source file stays whole first, then a trunk path draws to a split node.
-- Three branches draw progressively as the user scrolls.
-- Explicit `4.0 GB`, `6.0 GB`, and `4.2 GB` range chips split from the source and travel into Personal, Projects and Archive respectively.
-- Destination cards react as each range arrives.
-- The final `3 ranges placed · SHA-256 verified` state appears only near the end of the scroll sequence.
-- Scrolling backward reverses the entire split sequence naturally.
-- Reduced-motion users see a stable completed placement state without scrubbed animation.
-- Public routes now support a persistent light/dark toggle with local preference storage and system-dark fallback.
-- Landing/demo dark mode uses dedicated polished surface, border, grid, glow and gradient overrides while preserving Meshly’s existing authenticated dark tokens.
-- Public pages include a compact adaptive top GitHub `View source` control linked to `https://github.com/cassielxyz/Meshly`.
-- Public pages include a footer credit: `Built with curiosity, shipped with care — cassiel.`
-- Footer credit links to the full GitHub profile `https://github.com/cassielxyz` with a GitHub icon.
-- Mobile keeps the source/theme controls below the sticky header; desktop keeps them compact in the top chrome.
+## Runtime verification
 
-### Storage engine
-
-- Unified per-account quota/storage pool.
-- Whole-file-first reserve-aware placement.
-- Deterministic cross-account byte-range splitting when required.
-- Incremental SHA-256 hashing for large browser uploads.
-- Google Drive resumable upload session creation and direct browser-to-Google part uploads.
-- Upload commit verification before logical-file promotion.
-- Multipart reconstruction with HTTP Range support.
-- Abort/cleanup path for incomplete uploads.
-
-### Google accounts / indexing
-
-- Multi-account OAuth with PKCE/state protections.
-- Managed mode using narrower Drive access for Meshly-managed files.
-- Optional Full Drive mode and existing-Drive indexing/change-sync code.
-- Per-account health/quota refresh and pause/disconnect controls.
-- Dependency protection before account disconnect.
-
-### Sharing / integrity / recovery
-
-- Public share links with hashed tokens.
-- Password protection, expiration, download caps and revocation.
-- Short-lived signed share grants and persisted auth-attempt rate limiting.
-- Integrity scanning/degraded-file paths.
-- Signed recovery manifests in Drive app data.
-- Restore path from the newest valid recovery manifest.
-
-### Operations / security
-
-- AES-256-GCM encrypted Google refresh tokens.
-- HttpOnly/SameSite sessions.
-- CSP/HSTS/security headers and same-origin unsafe mutation protection.
-- Request IDs.
-- `/api/health` and migration-aware `/api/readiness`.
-- Scheduled `/api/maintenance` protected by `CRON_SECRET`.
-- PostgreSQL/Drizzle schema and migrations.
-- Vercel cron configuration.
-- `pnpm production:preflight` deployment verification harness.
-- Preflight checks security headers, health, environment/database/migrations, OAuth redirect + PKCE, Managed scopes, exact callback URL, cron protection and cross-origin mutation rejection.
-- `PRODUCTION_TESTING.md` real integration matrix and evidence template.
-- `pnpm release:check` final evidence gate.
-- Committed `pnpm-lock.yaml` and frozen dependency installs.
-- Production dependency audit runs in CI and `pnpm verify`.
-- `drizzle-orm` upgraded to patched `0.45.3` after CI caught high-severity advisory `GHSA-gpj5-g38j-94v9` affecting versions below `0.45.2`.
-- Current GitHub Actions runtimes: `actions/checkout@v7.0.1`, `pnpm/action-setup@v6.1.0`, `actions/setup-node@v7.0.0`.
-- Dependabot monitors npm and GitHub Actions.
-- Durable AI continuation system exists in `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `CONTINUE.md`, and `docs/checkpoints/`.
-
-## Verification already completed
-
-GitHub Actions run `36198114419` for runtime/UI commit `18f8a461dbc735302f0b8ea8a2d81b4c2e13c0db` passed:
+GitHub Actions run `36245925428` for commit `a832639fc25facc4e666e26adef7bf7cc89009f2` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -109,48 +41,46 @@ GitHub Actions run `36198114419` for runtime/UI commit `18f8a461dbc735302f0b8ea8
 - Vitest: **PASS**
 - optimized Next.js production build: **PASS**
 
-This verified state includes the editorial hero, reversible real-scroll placement animation, public dark mode, persistent theme toggle, top GitHub source control and cassiel footer/profile credit.
+This is CI verification only; it is **not yet credentialed production integration verification**.
 
-An earlier implementation of the theme toggle was correctly rejected by the React Hooks lint rule for synchronously setting React state inside an effect. It was replaced with a state-free DOM-synchronized implementation before the verified run above.
+## Production integration still pending
 
-## NOT yet proven with real production credentials
-
-These are integration/deployment tasks, not missing product code:
-
-- Hosted TLS PostgreSQL and production migrations.
-- Deployed `pnpm production:preflight` with all readiness checks green.
-- Real Google OAuth login/callback on the production domain.
-- Two or more real Google accounts and pooled real quota.
+- Hosted TLS PostgreSQL + production migration.
+- Production environment variables from `.env.example`.
+- Vercel/Node 22+ deployment.
+- `pnpm production:preflight` against the deployed URL.
+- Real Google OAuth callback.
+- Two or more real Google accounts and pooled quota.
 - Small-file upload/download SHA-256 round trip.
 - Forced cross-account multipart upload/reconstruction SHA-256 round trip.
-- Interrupted/resumed upload against Google.
-- Full Drive indexing/change sync if broader scope will be enabled.
-- Real chunk integrity scan.
-- Recovery snapshot and restore rehearsal.
-- Deployed share password/expiry/download-limit/revocation flow.
-- Vercel cron with real `CRON_SECRET`.
-- Desktop/mobile deployed UX smoke test, including `/`, `/demo`, dark mode, source controls, footer credit, editorial hero, true scroll-scrubbed placement animation, reduced-motion mode and scroll smoothness.
+- Interrupted/resumed upload test.
+- Full Drive index/change sync test if broader mode is enabled.
+- Real integrity scan.
+- Recovery snapshot + restore rehearsal.
+- Share password/expiry/download-limit/revocation test.
+- Vercel cron authentication test.
+- Desktop/mobile deployed visual smoke test including header-mounted controls, dark mode, footer signature, editorial hero and slow reversible scroll placement motion.
 
-## Next actions — do these in order
+## Next actions — in order
 
 1. Provision production PostgreSQL with TLS.
-2. Add all environment variables from `.env.example`.
+2. Configure all required environment variables.
 3. Run `pnpm db:migrate` against production.
-4. Deploy `main` to Vercel/Node 22+.
+4. Deploy `main`.
 5. Run `pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json` and require all checks to pass.
-6. Run the required tests in `PRODUCTION_TESTING.md` and record non-secret evidence in `.meshly/integration-results.json`.
-7. Force one test file to span at least two Google accounts, download it and compare whole-file SHA-256.
-8. Run Integrity and Recovery rehearsals.
-9. Verify public sharing and scheduled maintenance.
-10. Smoke-test desktop and mobile, including landing/demo animations, light/dark toggle persistence, source link, cassiel footer/profile link, editorial typography, scroll-controlled split timing and reduced-motion behavior.
+6. Execute the required cases in `PRODUCTION_TESTING.md` and store non-secret evidence.
+7. Force one file to span at least two Google accounts and compare the downloaded whole-file SHA-256 with the original.
+8. Run integrity and recovery rehearsals.
+9. Verify sharing and scheduled maintenance.
+10. Smoke-test desktop and mobile, especially header-mounted source/theme controls and the scroll placement timing.
 11. Run `pnpm release:check` and `pnpm verify`.
-12. Fix only failures found by real testing, rerunning the relevant test and full gate after each fix.
-13. When all required credential-dependent tests pass, update this checkpoint to **production verified** and create the release/tag.
+12. Fix only failures found by real testing.
+13. When all required integration tests pass, update this checkpoint to **production verified** and create the release/tag.
 
 ## External constraint
 
-Full Drive mode uses broader Google Drive access. Keep Managed mode as the public/default mode unless the deployment has completed Google’s applicable OAuth verification/security-review requirements for broader scopes.
+Keep Managed Google Drive mode as the default public mode. Full Drive mode uses broader access and should only be exposed publicly after the applicable Google OAuth verification/security-review requirements are satisfied.
 
-## Continuation prompt for a new AI session
+## Continuation prompt
 
-> Open `cassielxyz/Meshly`. Read `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, and the newest checkpoint under `docs/checkpoints/`. Inspect commits and CI after the recorded checkpoint, reconcile newer changes, and continue only from the unfinished `Next actions`. Do not redo completed work.
+> Open `cassielxyz/Meshly`. Read `AGENTS.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, and the newest checkpoint under `docs/checkpoints/`. Inspect newer commits and CI, then continue only from unfinished next actions. Do not redo completed work.
