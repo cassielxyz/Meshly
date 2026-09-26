@@ -103,36 +103,60 @@ button:disabled { cursor: default; }
 
 .focus-ring:focus-visible { outline: 3px solid color-mix(in srgb, var(--blue) 35%, transparent); outline-offset: 2px; }
 .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c7cdd4 transparent; }
+
+.public-header {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 70%, transparent);
+}
+
 .gradient-mesh {
   background:
-    radial-gradient(circle at 15% 30%, rgba(66,133,244,.14), transparent 34%),
-    radial-gradient(circle at 75% 18%, rgba(52,168,83,.12), transparent 32%),
-    radial-gradient(circle at 70% 78%, rgba(251,188,4,.12), transparent 30%),
-    radial-gradient(circle at 24% 82%, rgba(234,67,53,.09), transparent 28%);
+    radial-gradient(circle at 18% 22%, rgba(178,151,255,.10), transparent 34%),
+    radial-gradient(circle at 78% 18%, rgba(246,166,216,.11), transparent 32%),
+    radial-gradient(circle at 50% 90%, rgba(138,180,248,.08), transparent 38%),
+    var(--background);
 }
 
 .dark .gradient-mesh {
   background:
-    radial-gradient(circle at 15% 30%, rgba(98,155,255,.14), transparent 34%),
-    radial-gradient(circle at 75% 18%, rgba(81,194,119,.10), transparent 32%),
-    radial-gradient(circle at 70% 78%, rgba(251,188,4,.07), transparent 30%),
-    radial-gradient(circle at 24% 82%, rgba(224,106,132,.08), transparent 28%),
+    radial-gradient(circle at 18% 22%, rgba(178,151,255,.12), transparent 34%),
+    radial-gradient(circle at 78% 18%, rgba(246,166,216,.08), transparent 32%),
+    radial-gradient(circle at 50% 90%, rgba(138,180,248,.08), transparent 38%),
     #0f1115;
 }
 
+.hero-mesh {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(240,215,255,.36), transparent 30%),
+    radial-gradient(circle at 18% 66%, rgba(226,237,255,.42), transparent 34%),
+    radial-gradient(circle at 86% 62%, rgba(255,225,242,.32), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #fefcff 50%, #f8faff 100%);
+}
+
+.dark .hero-mesh {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(173,130,224,.14), transparent 30%),
+    radial-gradient(circle at 18% 66%, rgba(92,149,255,.10), transparent 34%),
+    radial-gradient(circle at 86% 62%, rgba(224,106,170,.08), transparent 30%),
+    linear-gradient(180deg, #0f1115 0%, #11131a 55%, #10131a 100%);
+}
+
 .meshly-editorial-gradient {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: .12em auto 0;
   padding-inline: .035em;
   font-family: var(--font-bodoni), "Bodoni 72", "Bodoni MT", Didot, serif;
   font-style: italic;
   font-weight: 500;
-  line-height: .94;
-  letter-spacing: -.045em;
-  background: linear-gradient(100deg, #f6c6e4 0%, #edb8ef 36%, #dda1ec 67%, #c986df 100%);
+  line-height: .9;
+  letter-spacing: -.04em;
+  text-wrap: balance;
+  background: linear-gradient(100deg, #f5b8dd 0%, #e7aaf0 42%, #cb97ef 72%, #a987e4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 12px 38px rgba(207,139,227,.12);
+  text-shadow: 0 12px 38px rgba(207,139,227,.10);
 }
 
 .dark .meshly-editorial-gradient {
@@ -140,27 +164,27 @@ button:disabled { cursor: default; }
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 14px 42px rgba(213,157,255,.16);
+  text-shadow: 0 14px 42px rgba(213,157,255,.14);
 }
 
 .hero-grid {
   background-image:
-    linear-gradient(rgba(32,33,36,.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(32,33,36,.035) 1px, transparent 1px);
+    linear-gradient(rgba(32,33,36,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32,33,36,.025) 1px, transparent 1px);
   background-size: 52px 52px;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 78%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.38), transparent 78%);
 }
 
 .dark .hero-grid {
   background-image:
-    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
 }
 
 .deep-grid {
   background-image:
-    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(circle at 62% 50%, black, transparent 76%);
 }
@@ -188,10 +212,6 @@ button:disabled { cursor: default; }
     linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(circle at 58% 48%, #000 22%, transparent 88%);
-}
-
-#architecture {
-  min-height: 240vh !important;
 }
 
 /* Public marketing/demo dark surfaces. The authenticated workspace already uses semantic theme tokens. */
@@ -240,10 +260,6 @@ body[data-meshly-public="true"] main > footer {
   display: none;
 }
 
-.public-top-tools {
-  isolation: isolate;
-}
-
 .public-credit-footer {
   position: relative;
   z-index: 10;
@@ -260,9 +276,41 @@ body[data-meshly-public="true"] main > footer {
   text-wrap: balance;
 }
 
-@media (min-width: 1024px) {
-  #architecture {
-    min-height: 280vh !important;
+@media (max-width: 639px) {
+  .hero-title {
+    font-size: clamp(3.15rem, 13.4vw, 4rem);
+    line-height: .94;
+    letter-spacing: -.052em;
+  }
+
+  .meshly-editorial-gradient {
+    max-width: 9.6ch;
+    margin-top: .2em;
+    font-size: 1.01em;
+    line-height: .84;
+    letter-spacing: -.032em;
+  }
+
+  .hero-mesh {
+    background:
+      radial-gradient(circle at 50% 16%, rgba(239,218,255,.30), transparent 31%),
+      radial-gradient(circle at 18% 72%, rgba(226,237,255,.30), transparent 34%),
+      radial-gradient(circle at 86% 68%, rgba(255,229,243,.24), transparent 30%),
+      linear-gradient(180deg, #ffffff 0%, #fdfbff 52%, #f9fbff 100%);
+  }
+
+  .dark .hero-mesh {
+    background:
+      radial-gradient(circle at 50% 16%, rgba(173,130,224,.12), transparent 31%),
+      radial-gradient(circle at 18% 72%, rgba(92,149,255,.08), transparent 34%),
+      radial-gradient(circle at 86% 68%, rgba(224,106,170,.07), transparent 30%),
+      linear-gradient(180deg, #0f1115 0%, #11131a 55%, #10131a 100%);
+  }
+
+  .public-credit-quote {
+    max-width: 18ch;
+    font-size: 1.55rem;
+    line-height: 1.02;
   }
 }
 
