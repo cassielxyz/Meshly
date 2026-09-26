@@ -52,39 +52,62 @@ export function LivePlacementMap() {
   const reduceMotion = useReducedMotion();
   const rawProgress = useMotionValue(0);
   const progress = useSpring(rawProgress, {
-    stiffness: 68,
+    stiffness: 44,
     damping: 24,
-    mass: 0.88,
-    restDelta: 0.0005,
-    restSpeed: 0.002,
+    mass: 1.2,
+    restDelta: 0.0004,
+    restSpeed: 0.0015,
   });
 
   useEffect(() => {
-    const section = shellRef.current?.closest("#architecture") as HTMLElement | null;
+    const scrollRoot = shellRef.current?.closest("[data-placement-scroll-root]") as HTMLElement | null;
+    const fallback = shellRef.current?.closest("#architecture") as HTMLElement | null;
+    const section = scrollRoot ?? fallback;
+
     if (!section || reduceMotion) {
       rawProgress.set(reduceMotion ? 1 : 0);
       return;
     }
 
     let frame = 0;
+    let sectionTop = 0;
+    let travel = 1;
+    let headerOffset = 0;
+
+    const measure = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = Math.max(1, document.documentElement.clientHeight || window.innerHeight);
+      sectionTop = window.scrollY + rect.top;
+      headerOffset = window.innerWidth < 1024 ? 72 : 0;
+      travel = Math.max(1, section.offsetHeight - viewportHeight + headerOffset);
+    };
+
     const update = () => {
       frame = 0;
-      const rect = section.getBoundingClientRect();
-      const travel = Math.max(1, section.offsetHeight - window.innerHeight);
-      const next = Math.min(1, Math.max(0, -rect.top / travel));
+      const next = Math.min(1, Math.max(0, (window.scrollY - sectionTop + headerOffset) / travel));
       rawProgress.set(next);
     };
+
     const requestUpdate = () => {
       if (frame) return;
       frame = window.requestAnimationFrame(update);
     };
 
+    const handleResize = () => {
+      measure();
+      requestUpdate();
+    };
+
+    measure();
     update();
     window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
+    window.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+
     return () => {
       window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, [rawProgress, reduceMotion]);
@@ -114,24 +137,24 @@ export function LivePlacementMap() {
   return (
     <div
       ref={shellRef}
-      className="placement-shell relative mx-auto w-full max-w-[680px] rounded-[34px] border border-white/12 bg-white/[.045] p-5 shadow-[0_32px_110px_rgba(0,0,0,.3)] backdrop-blur-xl sm:p-8"
+      className="placement-shell relative mx-auto w-full max-w-[680px] rounded-[30px] border border-white/12 bg-white/[.045] p-4 shadow-[0_28px_90px_rgba(0,0,0,.28)] backdrop-blur-xl sm:rounded-[34px] sm:p-8"
     >
-      <div className="flex items-start justify-between gap-5">
+      <div className="flex items-start justify-between gap-4 sm:gap-5">
         <div className="min-w-0 text-left">
-          <div className="text-[11px] font-semibold uppercase tracking-[.2em] text-white/45 sm:text-xs">Live placement map</div>
-          <div className="mt-2 truncate text-base font-semibold tracking-[-.02em] text-white sm:text-lg">
+          <div className="text-[10px] font-semibold uppercase tracking-[.19em] text-white/45 sm:text-xs">Live placement map</div>
+          <div className="mt-2 truncate text-[15px] font-semibold tracking-[-.02em] text-white sm:text-lg">
             camera-backup-2026.zip <span className="text-white/55">· 14.2 GB</span>
           </div>
         </div>
-        <div className="shrink-0 rounded-full border border-white/12 bg-white/[.055] px-4 py-2 text-[11px] font-semibold tracking-[.05em] text-white/58 shadow-inner">
+        <div className="shrink-0 rounded-full border border-white/12 bg-white/[.055] px-3 py-2 text-[10px] font-semibold tracking-[.05em] text-white/58 shadow-inner sm:px-4 sm:text-[11px]">
           SCROLL
         </div>
       </div>
 
-      <div className="relative mt-7 h-[326px] overflow-hidden rounded-[28px] border border-white/9 bg-black/[.11] sm:h-[342px]">
+      <div className="relative mt-5 h-[300px] overflow-hidden rounded-[24px] border border-white/9 bg-black/[.11] sm:mt-7 sm:h-[342px] sm:rounded-[28px]">
         <div className="placement-map-grid pointer-events-none absolute inset-0 opacity-45" />
         <div className="pointer-events-none absolute left-[18%] top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-[#4285F4]/10 blur-[45px]" />
-        <div className="pointer-events-none absolute right-[5%] top-[18%] h-40 w-40 rounded-full bg-[#34A853]/7 blur-[55px]" />
+        <div className="pointer-events-none absolute right-[5%] top-[18%] h-40 w-40 rounded-full bg-[#b58cff]/8 blur-[55px]" />
 
         <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 640 310" preserveAspectRatio="none" aria-hidden="true">
           <defs>
@@ -178,15 +201,15 @@ export function LivePlacementMap() {
         </svg>
 
         <motion.div
-          className="absolute left-[12%] top-1/2 z-10 flex -translate-y-1/2 items-center gap-3 rounded-2xl border border-white/70 bg-white px-4 py-3 text-[#172033] shadow-[0_12px_34px_rgba(0,0,0,.18),0_0_30px_rgba(76,141,255,.12)] sm:left-[13%]"
+          className="absolute left-[9%] top-1/2 z-10 flex -translate-y-1/2 items-center gap-2 rounded-2xl border border-white/70 bg-white px-3 py-2.5 text-[#172033] shadow-[0_12px_34px_rgba(0,0,0,.18),0_0_30px_rgba(76,141,255,.12)] sm:left-[13%] sm:gap-3 sm:px-4 sm:py-3"
           style={{ opacity: reduceMotion ? 0.3 : sourceOpacity, scale: reduceMotion ? 0.94 : sourceScale }}
         >
-          <FileArchive size={19} className="text-[#4C8DFF]" />
-          <span className="text-sm font-bold tracking-[-.02em]">14.2 GB</span>
+          <FileArchive size={17} className="text-[#4C8DFF] sm:h-[19px] sm:w-[19px]" />
+          <span className="text-xs font-bold tracking-[-.02em] sm:text-sm">14.2 GB</span>
         </motion.div>
 
         <motion.div
-          className="absolute left-[34.5%] top-[42%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#111c31]/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[.12em] text-white/55 backdrop-blur"
+          className="absolute left-[34.5%] top-[42%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-[#111c31]/90 px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[.11em] text-white/55 backdrop-blur sm:px-3 sm:text-[10px]"
           style={{ opacity: reduceMotion ? 0 : splitLabelOpacity }}
         >
           split into 3 ranges
@@ -195,7 +218,7 @@ export function LivePlacementMap() {
         {destinations.map((destination, index) => (
           <motion.div
             key={`${destination.name}-chunk`}
-            className="absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/20 bg-[#111827]/95 px-2.5 py-1.5 text-[10px] font-bold tabular-nums shadow-[0_8px_22px_rgba(0,0,0,.24)] backdrop-blur-sm sm:text-[11px]"
+            className="absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/20 bg-[#111827]/95 px-2 py-1.5 text-[9px] font-bold tabular-nums shadow-[0_8px_22px_rgba(0,0,0,.24)] backdrop-blur-sm sm:px-2.5 sm:text-[11px]"
             style={{
               left: reduceMotion ? "56.5%" : motions[index].left,
               top: reduceMotion ? ["22%", "50%", "78%"][index] : motions[index].top,
@@ -208,13 +231,13 @@ export function LivePlacementMap() {
           </motion.div>
         ))}
 
-        <div className="absolute right-4 top-0 h-full w-[47%] min-w-[210px] sm:right-6 sm:w-[43%]">
+        <div className="absolute right-3 top-0 h-full w-[49%] min-w-[184px] sm:right-6 sm:w-[43%] sm:min-w-[210px]">
           {destinations.map((destination, index) => {
             const Icon = destination.icon;
             return (
               <motion.div
                 key={destination.name}
-                className="absolute left-0 flex h-[72px] w-full items-center rounded-[22px] border border-white/12 bg-white/[.065] px-4 shadow-[0_10px_28px_rgba(0,0,0,.12)] backdrop-blur-md sm:px-5"
+                className="absolute left-0 flex h-[66px] w-full items-center rounded-[20px] border border-white/12 bg-white/[.065] px-3 shadow-[0_10px_28px_rgba(0,0,0,.12)] backdrop-blur-md sm:h-[72px] sm:rounded-[22px] sm:px-5"
                 style={{
                   top: destination.top,
                   opacity: reduceMotion ? 1 : motions[index].cardOpacity,
@@ -226,34 +249,34 @@ export function LivePlacementMap() {
               >
                 <motion.span
                   aria-hidden="true"
-                  className="absolute inset-y-0 left-0 w-[5px] rounded-l-[22px]"
+                  className="absolute inset-y-0 left-0 w-[5px] rounded-l-[20px] sm:rounded-l-[22px]"
                   style={{
                     backgroundColor: destination.color,
                     opacity: reduceMotion ? 1 : motions[index].cardGlow,
                   }}
                 />
-                <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[.035]" style={{ color: destination.color }}>
-                    <Icon size={20} />
+                <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/[.035] sm:h-9 sm:w-9" style={{ color: destination.color }}>
+                    <Icon size={18} />
                   </div>
-                  <span className="truncate text-sm font-semibold tracking-[-.01em] text-white sm:text-[15px]">{destination.name}</span>
+                  <span className="truncate text-[13px] font-semibold tracking-[-.01em] text-white sm:text-[15px]">{destination.name}</span>
                 </div>
-                <span className="ml-3 shrink-0 text-xs font-medium tabular-nums text-white/48 sm:text-[13px]">{destination.size}</span>
+                <span className="ml-2 shrink-0 text-[11px] font-medium tabular-nums text-white/48 sm:ml-3 sm:text-[13px]">{destination.size}</span>
               </motion.div>
             );
           })}
         </div>
 
         <motion.div
-          className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-[#81c995]/18 bg-[#81c995]/9 px-3 py-1.5 text-[10px] font-semibold text-[#b7e1c1] sm:left-6 sm:text-[11px]"
+          className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-[#81c995]/18 bg-[#81c995]/9 px-2.5 py-1.5 text-[9px] font-semibold text-[#b7e1c1] sm:bottom-4 sm:left-6 sm:px-3 sm:text-[11px]"
           style={{ opacity: reduceMotion ? 1 : verifyOpacity, y: reduceMotion ? 0 : verifyY }}
         >
-          <CheckCircle2 size={13} /> 3 ranges placed · SHA-256 verified
+          <CheckCircle2 size={12} /> 3 ranges placed · SHA-256 verified
         </motion.div>
 
         <motion.div
           aria-hidden="true"
-          className="absolute inset-x-4 bottom-0 h-px origin-left bg-gradient-to-r from-[#4C8DFF] via-[#B58CFF] to-[#F6A6D8] sm:inset-x-6"
+          className="absolute inset-x-3 bottom-0 h-px origin-left bg-gradient-to-r from-[#4C8DFF] via-[#B58CFF] to-[#F6A6D8] sm:inset-x-6"
           style={{ scaleX: reduceMotion ? 1 : progressScale }}
         />
       </div>
