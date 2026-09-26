@@ -22,6 +22,10 @@ const fileSchema = z.object({
   starred: z.number().int(),
   description: z.string().nullable().optional(),
   version: z.number().int().positive().optional(),
+  encryptionVersion: z.number().int().nonnegative().optional(),
+  wrappedFileKey: z.string().nullable().optional(),
+  encryptionNoncePrefix: z.string().nullable().optional(),
+  encryptionFramePlainBytes: z.number().int().positive().nullable().optional(),
   trashedAt: z.string().datetime().nullable(),
   trashedParentId: z.string().nullable(),
   createdAt: z.string().datetime(),
@@ -34,9 +38,11 @@ const chunkSchema = z.object({
   part: z.number().int().nonnegative(),
   offset: z.number().int().nonnegative(),
   size: z.number().int().positive(),
+  physicalSize: z.number().int().positive().nullable().optional(),
   physicalName: z.string().min(1),
   driveFileId: z.string().nullable(),
   sha256: z.string().nullable(),
+  ciphertextSha256: z.string().nullable().optional(),
   status: z.string().min(1),
 });
 const payloadSchema = z.object({
@@ -89,6 +95,10 @@ export async function buildRecoveryDocument(userId: string) {
       starred: file.starred,
       description: file.description,
       version: file.version,
+      encryptionVersion: file.encryptionVersion,
+      wrappedFileKey: file.wrappedFileKey,
+      encryptionNoncePrefix: file.encryptionNoncePrefix,
+      encryptionFramePlainBytes: file.encryptionFramePlainBytes,
       trashedAt: file.trashedAt?.toISOString() ?? null,
       trashedParentId: file.trashedParentId && managedIds.has(file.trashedParentId) ? file.trashedParentId : null,
       createdAt: file.createdAt.toISOString(),
@@ -101,9 +111,11 @@ export async function buildRecoveryDocument(userId: string) {
       part: chunk.part,
       offset: chunk.offset,
       size: chunk.size,
+      physicalSize: chunk.physicalSize,
       physicalName: chunk.physicalName,
       driveFileId: chunk.driveFileId,
       sha256: chunk.sha256,
+      ciphertextSha256: chunk.ciphertextSha256,
       status: chunk.status,
     })),
   };
@@ -173,6 +185,10 @@ export async function restoreRecoverySnapshot(userId: string) {
   let restoredChunks = 0;
   await db.transaction(async (tx) => {
     for (const file of selected.payload.files) {
+      const encryptionVersion = file.encryptionVersion ?? 0;
+      if (encryptionVersion === 1 && (!file.wrappedFileKey || !file.encryptionNoncePrefix || !file.encryptionFramePlainBytes)) {
+        throw new Error(`Encrypted recovery metadata is incomplete for file ${file.id}`);
+      }
       const values = {
         id: file.id,
         userId,
@@ -185,6 +201,10 @@ export async function restoreRecoverySnapshot(userId: string) {
         starred: file.starred,
         description: file.description ?? null,
         version: file.version ?? 1,
+        encryptionVersion,
+        wrappedFileKey: file.wrappedFileKey ?? null,
+        encryptionNoncePrefix: file.encryptionNoncePrefix ?? null,
+        encryptionFramePlainBytes: file.encryptionFramePlainBytes ?? null,
         trashedAt: file.trashedAt ? new Date(file.trashedAt) : null,
         trashedParentId: file.trashedParentId,
         sourceKind: "managed",
@@ -193,21 +213,71 @@ export async function restoreRecoverySnapshot(userId: string) {
       };
       await tx.insert(logicalFiles).values(values).onConflictDoUpdate({
         target: logicalFiles.id,
-        set: { userId, parentId: values.parentId, name: values.name, mimeType: values.mimeType, size: values.size, sha256: values.sha256, status: values.status, starred: values.starred, description: values.description, version: values.version, trashedAt: values.trashedAt, trashedParentId: values.trashedParentId, sourceKind: "managed", sourceAccountId: null, sourceDriveFileId: null, sourceMimeType: null, sourceWebViewLink: null, updatedAt: values.updatedAt },
+        set: {
+          userId,
+          parentId: values.parentId,
+          name: values.name,
+          mimeType: values.mimeType,
+          size: values.size,
+          sha256: values.sha256,
+          status: values.status,
+          starred: values.starred,
+          description: values.description,
+          version: values.version,
+          encryptionVersion: values.encryptionVersion,
+          wrappedFileKey: values.wrappedFileKey,
+          encryptionNoncePrefix: values.encryptionNoncePrefix,
+          encryptionFramePlainBytes: values.encryptionFramePlainBytes,
+          trashedAt: values.trashedAt,
+          trashedParentId: values.trashedParentId,
+          sourceKind: "managed",
+          sourceAccountId: null,
+          sourceDriveFileId: null,
+          sourceMimeType: null,
+          sourceWebViewLink: null,
+          updatedAt: values.updatedAt,
+        },
       });
     }
+
     for (const chunk of selected.payload.chunks) {
       const mappedAccount = accountMap.get(chunk.accountId);
       if (!mappedAccount) {
         unmappedFiles.add(chunk.fileId);
         continue;
       }
-      await tx.insert(chunks).values({ ...chunk, accountId: mappedAccount }).onConflictDoUpdate({
+      await tx.insert(chunks).values({
+        id: chunk.id,
+        fileId: chunk.fileId,
+        accountId: mappedAccount,
+        part: chunk.part,
+        offset: chunk.offset,
+        size: chunk.size,
+        physicalSize: chunk.physicalSize ?? null,
+        physicalName: chunk.physicalName,
+        driveFileId: chunk.driveFileId,
+        sha256: chunk.sha256,
+        ciphertextSha256: chunk.ciphertextSha256 ?? null,
+        status: chunk.status,
+      }).onConflictDoUpdate({
         target: chunks.id,
-        set: { fileId: chunk.fileId, accountId: mappedAccount, part: chunk.part, offset: chunk.offset, size: chunk.size, physicalName: chunk.physicalName, driveFileId: chunk.driveFileId, sha256: chunk.sha256, status: chunk.status },
+        set: {
+          fileId: chunk.fileId,
+          accountId: mappedAccount,
+          part: chunk.part,
+          offset: chunk.offset,
+          size: chunk.size,
+          physicalSize: chunk.physicalSize ?? null,
+          physicalName: chunk.physicalName,
+          driveFileId: chunk.driveFileId,
+          sha256: chunk.sha256,
+          ciphertextSha256: chunk.ciphertextSha256 ?? null,
+          status: chunk.status,
+        },
       });
       restoredChunks++;
     }
+
     for (const fileId of unmappedFiles) await tx.update(logicalFiles).set({ status: "degraded", updatedAt: new Date() }).where(eq(logicalFiles.id, fileId));
     await tx.insert(activities).values({ id: nanoid(), userId, kind: "recovery_restore", metadata: { source: selected.from, generatedAt: selected.payload.generatedAt, files: selected.payload.files.length, chunks: restoredChunks, unmappedFiles: unmappedFiles.size } });
   });

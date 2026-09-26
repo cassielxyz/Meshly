@@ -1,12 +1,29 @@
 "use client";
 
 import { createSHA256 } from "hash-wasm";
+import { decodeBase64Url, encryptManagedFrame, importManagedFileKey } from "@/lib/client/file-encryption";
+import { CIPHER_FRAME_BYTES, frameCount, frameLayout } from "@/lib/storage/encryption-format";
 
-type PlannedSession = { chunkId: string; accountId: string; part: number; offset: number; size: number; uploadUrl: string };
-type PlanResponse = { fileId: string; sessions: PlannedSession[] };
-type Progress = { phase: "planning" | "hashing" | "uploading" | "verifying" | "done"; percent: number; part?: number; parts?: number };
-type CompletedChunk = { chunkId: string; driveFileId: string; sha256: string };
-const NETWORK_CHUNK = 8 * 1024 * 1024;
+type PlannedSession = {
+  chunkId: string;
+  accountId: string;
+  part: number;
+  offset: number;
+  size: number;
+  physicalSize: number;
+  uploadUrl: string;
+};
+type EncryptionPlan = {
+  version: 1;
+  key: string;
+  noncePrefix: string;
+  framePlainBytes: number;
+  tagBytes: number;
+  physicalSize: number;
+};
+type PlanResponse = { fileId: string; sessions: PlannedSession[]; encryption: EncryptionPlan };
+type Progress = { phase: "planning" | "hashing" | "encrypting" | "uploading" | "verifying" | "done"; percent: number; part?: number; parts?: number };
+type CompletedChunk = { chunkId: string; driveFileId: string; sha256: string; ciphertextSha256: string };
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -19,43 +36,84 @@ function receivedOffset(response: Response) {
 async function queryUploadState(session: PlannedSession) {
   const response = await fetch(session.uploadUrl, {
     method: "PUT",
-    headers: { "Content-Range": `bytes */${session.size}` },
+    headers: { "Content-Range": `bytes */${session.physicalSize}` },
   });
   if (response.ok) {
     const data = (await response.json()) as { id?: string };
-    if (!data.id) throw new Error(`Drive finalized part ${session.part + 1} without an id`);
-    return { done: true as const, driveFileId: data.id, offset: session.size };
+    if (!data.id) throw new Error("Drive finalized encrypted upload without an id");
+    return { done: true as const, driveFileId: data.id, offset: session.physicalSize };
   }
   if (response.status === 308) return { done: false as const, driveFileId: null, offset: receivedOffset(response) ?? 0 };
-  if (response.status === 404) throw new Error(`Upload session for part ${session.part + 1} expired`);
-  throw new Error(`Unable to query upload part ${session.part + 1} (${response.status})`);
+  if (response.status === 404) throw new Error("Encrypted upload session expired");
+  throw new Error(`Unable to query encrypted upload state (${response.status})`);
 }
 
-async function hashSlice(file: File, start: number, size: number, whole?: Awaited<ReturnType<typeof createSHA256>>) {
-  const hasher = await createSHA256();
-  hasher.init();
-  let cursor = 0;
-  while (cursor < size) {
-    const end = Math.min(cursor + NETWORK_CHUNK, size);
-    const bytes = new Uint8Array(await file.slice(start + cursor, start + end).arrayBuffer());
-    hasher.update(bytes);
-    whole?.update(bytes);
-    cursor = end;
+async function prehashEncrypted(file: File, fileId: string, encryption: EncryptionPlan, onProgress?: (percent: number) => void) {
+  const key = await importManagedFileKey(encryption.key);
+  const noncePrefix = decodeBase64Url(encryption.noncePrefix);
+  const whole = await createSHA256();
+  const chunk = await createSHA256();
+  const ciphertext = await createSHA256();
+  whole.init();
+  chunk.init();
+  ciphertext.init();
+  const frames = frameCount(file.size, encryption.framePlainBytes);
+  let hashed = 0;
+
+  for (let index = 0; index < frames; index++) {
+    const layout = frameLayout(file.size, index, encryption.framePlainBytes, encryption.tagBytes);
+    const plainBuffer = await file.slice(layout.plainOffset, layout.plainOffset + layout.plainSize).arrayBuffer();
+    const plain = new Uint8Array(plainBuffer);
+    whole.update(plain);
+    chunk.update(plain);
+    const encrypted = await encryptManagedFrame({ key, noncePrefix, fileId, fileSize: file.size, frameIndex: index, plaintext: plainBuffer });
+    if (encrypted.byteLength !== layout.cipherSize) throw new Error("Encrypted frame size mismatch");
+    ciphertext.update(encrypted);
+    hashed += layout.plainSize;
+    onProgress?.(Math.round((hashed / file.size) * 100));
   }
-  return hasher.digest("hex");
+
+  return {
+    sha256: whole.digest("hex"),
+    chunkSha256: chunk.digest("hex"),
+    ciphertextSha256: ciphertext.digest("hex"),
+  };
 }
 
-async function putResumable(session: PlannedSession, file: File, onBytes: (n: number) => void) {
+function plainProgressForPhysicalOffset(file: File, encryption: EncryptionPlan, offset: number) {
+  if (offset >= encryption.physicalSize) return file.size;
+  if (offset <= 0) return 0;
+  if (offset % CIPHER_FRAME_BYTES !== 0) throw new Error("Provider resume offset is not aligned to an encrypted frame boundary");
+  const completedFrames = offset / CIPHER_FRAME_BYTES;
+  return Math.min(file.size, completedFrames * encryption.framePlainBytes);
+}
+
+async function putEncryptedResumable(
+  session: PlannedSession,
+  file: File,
+  fileId: string,
+  encryption: EncryptionPlan,
+  onPlainProgress: (acceptedPlainBytes: number) => void,
+) {
+  const key = await importManagedFileKey(encryption.key);
+  const noncePrefix = decodeBase64Url(encryption.noncePrefix);
   let cursor = 0;
   let consecutiveFailures = 0;
-  while (cursor < session.size) {
-    const end = Math.min(cursor + NETWORK_CHUNK, session.size);
-    const body = file.slice(session.offset + cursor, session.offset + end);
+
+  while (cursor < session.physicalSize) {
+    if (cursor % CIPHER_FRAME_BYTES !== 0) throw new Error("Encrypted upload resume state is not frame aligned");
+    const frameIndex = cursor / CIPHER_FRAME_BYTES;
+    const layout = frameLayout(file.size, frameIndex, encryption.framePlainBytes, encryption.tagBytes);
+    if (layout.cipherOffset !== cursor) throw new Error("Encrypted upload frame offset mismatch");
+    const plainBuffer = await file.slice(layout.plainOffset, layout.plainOffset + layout.plainSize).arrayBuffer();
+    const body = await encryptManagedFrame({ key, noncePrefix, fileId, fileSize: file.size, frameIndex, plaintext: plainBuffer });
+    const end = cursor + body.byteLength;
     let response: Response | null = null;
+
     try {
       response = await fetch(session.uploadUrl, {
         method: "PUT",
-        headers: { "Content-Range": `bytes ${cursor}-${end - 1}/${session.size}` },
+        headers: { "Content-Range": `bytes ${cursor}-${end - 1}/${session.physicalSize}` },
         body,
       });
     } catch {
@@ -63,39 +121,41 @@ async function putResumable(session: PlannedSession, file: File, onBytes: (n: nu
     }
 
     if (response?.ok) {
-      onBytes(Math.max(0, end - cursor));
+      onPlainProgress(file.size);
       const data = (await response.json()) as { id?: string };
-      if (!data.id) throw new Error(`Drive did not finalize part ${session.part + 1}`);
+      if (!data.id) throw new Error("Drive did not finalize encrypted upload");
       return data.id;
     }
 
     if (response?.status === 308) {
-      let next = receivedOffset(response);
-      if (next === null) next = (await queryUploadState(session)).offset;
-      onBytes(Math.max(0, next - cursor));
+      const next = receivedOffset(response) ?? (await queryUploadState(session)).offset;
+      if (next < cursor || next > session.physicalSize) throw new Error("Provider returned an invalid resume offset");
       cursor = next;
+      onPlainProgress(plainProgressForPhysicalOffset(file, encryption, cursor));
       consecutiveFailures = 0;
       continue;
     }
 
-    if (response && response.status < 500 && response.status !== 408 && response.status !== 429) {
-      if (response.status === 404) throw new Error(`Upload session for part ${session.part + 1} expired`);
-      throw new Error(`Upload part ${session.part + 1} failed (${response.status})`);
+    if (response && response.status < 500 && response.status !== 408 && response.status !== 409 && response.status !== 425 && response.status !== 429) {
+      if (response.status === 404) throw new Error("Encrypted upload session expired");
+      throw new Error(`Encrypted upload failed (${response.status})`);
     }
 
     consecutiveFailures++;
-    if (consecutiveFailures > 5) throw new Error(`Upload part ${session.part + 1} could not be resumed`);
+    if (consecutiveFailures > 5) throw new Error("Encrypted upload could not be resumed");
     await sleep(Math.min(8000, 400 * 2 ** consecutiveFailures));
     const state = await queryUploadState(session);
     if (state.done) {
-      onBytes(Math.max(0, session.size - cursor));
+      onPlainProgress(file.size);
       return state.driveFileId;
     }
-    onBytes(Math.max(0, state.offset - cursor));
     cursor = state.offset;
+    onPlainProgress(plainProgressForPhysicalOffset(file, encryption, cursor));
   }
+
   const state = await queryUploadState(session);
-  if (!state.done) throw new Error(`Drive did not finalize part ${session.part + 1}`);
+  if (!state.done) throw new Error("Drive did not finalize encrypted upload");
+  onPlainProgress(file.size);
   return state.driveFileId;
 }
 
@@ -107,49 +167,49 @@ async function abortUpload(fileId: string, completed: CompletedChunk[]) {
   }).catch(() => undefined);
 }
 
-export async function uploadMeshlyFile(file: File, onProgress?: (value: Progress) => void, parentId?: string | null) {
+export async function uploadMeshlyFile(file: File, onProgress?: (value: Progress) => void, parentId?: string | null, accountId?: string) {
   onProgress?.({ phase: "planning", percent: 0 });
   const planResponse = await fetch("/api/uploads/plan", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name: file.name, size: file.size, mimeType: file.type || "application/octet-stream", parentId: parentId ?? null }),
+    body: JSON.stringify({ name: file.name, size: file.size, mimeType: file.type || "application/octet-stream", parentId: parentId ?? null, accountId }),
   });
   if (!planResponse.ok) {
     const data = (await planResponse.json().catch(() => ({}))) as { error?: string };
     throw new Error(data.error ?? "Unable to plan upload");
   }
   const plan = (await planResponse.json()) as PlanResponse;
+  if (plan.encryption?.version !== 1) throw new Error("Meshly refused to create an encrypted upload plan");
+  if (plan.sessions.length !== 1 || plan.sessions[0]?.size !== file.size || plan.sessions[0]?.physicalSize !== plan.encryption.physicalSize) {
+    throw new Error("Encrypted Google upload plan is invalid");
+  }
+
   const completed: CompletedChunk[] = [];
   try {
-    const whole = await createSHA256();
-    whole.init();
-    const hashes = new Map<string, string>();
-    let hashed = 0;
-    for (const session of plan.sessions) {
-      const hash = await hashSlice(file, session.offset, session.size, whole);
-      hashes.set(session.chunkId, hash);
-      hashed += session.size;
-      onProgress?.({ phase: "hashing", percent: Math.round((hashed / file.size) * 100), part: session.part + 1, parts: plan.sessions.length });
-    }
-    const wholeHash = whole.digest("hex");
+    onProgress?.({ phase: "encrypting", percent: 0, part: 1, parts: 1 });
+    const hashes = await prehashEncrypted(file, plan.fileId, plan.encryption, (percent) => {
+      onProgress?.({ phase: "hashing", percent, part: 1, parts: 1 });
+    });
 
-    let uploaded = 0;
-    for (const session of plan.sessions) {
-      const driveFileId = await putResumable(session, file, (bytes) => {
-        uploaded += bytes;
-        onProgress?.({ phase: "uploading", percent: Math.min(100, Math.round((uploaded / file.size) * 100)), part: session.part + 1, parts: plan.sessions.length });
-      });
-      completed.push({ chunkId: session.chunkId, driveFileId, sha256: hashes.get(session.chunkId)! });
-    }
+    const session = plan.sessions[0]!;
+    let acceptedPlain = 0;
+    const driveFileId = await putEncryptedResumable(session, file, plan.fileId, plan.encryption, (bytes) => {
+      acceptedPlain = Math.max(acceptedPlain, bytes);
+      onProgress?.({ phase: "uploading", percent: Math.min(100, Math.round((acceptedPlain / file.size) * 100)), part: 1, parts: 1 });
+    });
+    completed.push({ chunkId: session.chunkId, driveFileId, sha256: hashes.chunkSha256, ciphertextSha256: hashes.ciphertextSha256 });
 
-    onProgress?.({ phase: "verifying", percent: 100, parts: plan.sessions.length });
+    onProgress?.({ phase: "verifying", percent: 100, parts: 1 });
     const commit = await fetch("/api/uploads/commit", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fileId: plan.fileId, sha256: wholeHash, chunks: completed }),
+      body: JSON.stringify({ fileId: plan.fileId, sha256: hashes.sha256, chunks: completed }),
     });
-    if (!commit.ok) throw new Error("Remote verification failed");
-    onProgress?.({ phase: "done", percent: 100, parts: plan.sessions.length });
+    if (!commit.ok) {
+      const data = (await commit.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error ?? "Remote encrypted-object verification failed");
+    }
+    onProgress?.({ phase: "done", percent: 100, parts: 1 });
     return commit.json() as Promise<{ ok: true; fileId: string; downloadUrl: string }>;
   } catch (error) {
     await abortUpload(plan.fileId, completed);
