@@ -1,34 +1,31 @@
 {
   "schemaVersion": 1,
   "project": "Meshly",
-  "taskId": "production-readiness-cleanup",
-  "title": "Remove stale Google sharding guidance and add public legal pages",
-  "branch": "work/production-readiness-cleanup",
-  "pullRequest": 5,
+  "taskId": "production-preflight-hardening",
+  "title": "Harden production environment validation and automated preflight",
+  "branch": "work/production-preflight-hardening",
+  "pullRequest": 6,
   "status": "milestone_verified_merge_pending",
   "checkpointDate": "2026-09-27",
-  "baseMainCommit": "654727bbd4963c1df7f90f721f219bcf3e4db7f3",
-  "lastVerifiedRuntimeCommit": "71e164814de83d858d744d987b54443ef0019f95",
-  "lastVerifiedCiRun": "36268994840",
+  "baseMainCommit": "d288a5ce9a45c74442d2fbaec934ac28d95a41de",
+  "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
+  "lastVerifiedCiRun": "36269498896",
   "completedOnTask": [
-    "align_readme_current_status_and_roadmap",
-    "update_production_testing_for_encrypted_auto_manual_google_round_trips",
-    "update_deployment_for_encrypted_whole_file_google_model",
-    "update_integration_evidence_template",
-    "expand_security_documentation",
-    "add_public_privacy_page",
-    "add_public_terms_page",
-    "add_legal_links_to_public_footer",
-    "update_root_product_metadata",
-    "replace_split_google_storage_flow_asset",
-    "refresh_multicloud_encrypted_storage_banner",
+    "validate_token_encryption_key_as_exact_canonical_base64_32_bytes",
+    "reject_reused_purpose_specific_secrets",
+    "require_https_outside_localhost_and_exact_google_callback_binding",
+    "add_environment_validation_tests",
+    "preflight_checks_public_privacy_and_terms",
+    "preflight_checks_encryption_schema_v1",
+    "preflight_checks_identity_managed_drive_offline_pkce_and_exact_callback",
+    "document_hardened_preflight",
     "full_ci_gate_passed",
     "checkpoint_verified_milestone"
   ],
   "remaining": [
     "verify_checkpoint_only_ci",
-    "merge_pr_5",
-    "continue_production_configuration_and_live_verification"
+    "merge_pr_6",
+    "continue_external_production_configuration_and_live_verification"
   ],
   "blockers": [
     "production_credentials_and_database_are_not_configured_for_real_provider_verification"
@@ -37,6 +34,7 @@
     "google_managed_files_are_whole_file_only_in_one_google_account",
     "every_new_managed_file_uses_encryption_v1",
     "current_encryption_is_backend_trusted_not_zero_knowledge",
+    "production_purpose_secrets_are_independent",
     "provider_limits_and_terms_must_be_respected",
     "repository_newer_than_checkpoint_wins"
   ]

@@ -5,9 +5,9 @@
 **Checkpoint date:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime commit:** `71e164814de83d858d744d987b54443ef0019f95`  
-**Latest verified CI run:** `36268994840`  
-**Latest milestone record:** `docs/checkpoints/2026-09-27-production-readiness-cleanup-and-legal-pages.md`
+**Latest verified runtime commit:** `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`  
+**Latest verified CI run:** `36269498896`  
+**Latest milestone record:** `docs/checkpoints/2026-09-27-production-preflight-hardening.md`
 
 ## Current state
 
@@ -15,37 +15,42 @@ Meshly is a provider-independent multi-cloud workspace with separate **Google Dr
 
 Every **new Meshly-managed upload** uses encryption v1 before provider storage. Existing legacy managed files and externally indexed Drive files remain readable for compatibility.
 
-The Google upload UI supports **Auto choose** or a specific healthy connected Google account for both file and folder uploads. Public landing/demo content matches this architecture and shows encrypt → route/transfer → verify instead of the retired split-across-Google story.
-
-Production-readiness documentation now matches the current model: required live tests cover encrypted whole-file Auto/manual Google placement, opaque ciphertext inspection, resumable encrypted transfer, integrity, recovery, sharing and smoke tests. Public `/privacy` and `/terms` pages and footer links are implemented for OAuth/product transparency.
-
-Meshly uses layered durable continuation files so interrupted AI sessions can recover both the last verified milestone and in-flight branch state without reconstructing chat history.
+The production configuration path is now hardened in code: environment validation enforces HTTPS outside localhost, an exact Google callback bound to `NEXT_PUBLIC_APP_URL`, an exact canonical-base64 32-byte `TOKEN_ENCRYPTION_KEY`, and independent purpose-specific application secrets. Production preflight verifies public legal pages, readiness including `encryptionSchema: v1`, identity and managed Drive OAuth scopes, offline access, PKCE and the exact callback.
 
 Production database/credentials/deployed provider verification are still pending. Do not treat CI as proof of a live Google round trip.
 
 ## Completed in code
 
-- Responsive logical filesystem, folders/files, search, recent/starred/trash, sharing, diagnostics and production hardening.
-- Managed Google OAuth mode plus optional Full Drive indexing code.
-- Provider registry for Google Drive, TeraBox, Dropbox, MEGA and experimental MediaFire.
-- Dedicated **Google Drives** and **Other Clouds** areas.
-- Google whole-file-only managed placement; cross-account Google sharding disabled.
-- Auto choose or explicit healthy Google-account destination selection for file and folder uploads.
-- Provider-aware transfer profiles and retry/backoff helpers.
-- Conservative TeraBox transfer profile pending a real adapter.
-- Encryption v1 for all new Meshly-managed files: per-file random 256-bit keys, AES-256-GCM framing, wrapped file keys, opaque provider object names, separate plaintext/ciphertext integrity metadata and authenticated range decryption.
-- Encryption-aware integrity scanning, recovery metadata and migration `0005_managed_file_encryption.sql`.
-- Public landing/demo architecture refresh aligned to Google whole-file placement, Other Clouds, and mandatory managed-file encryption.
-- Public `/privacy` and `/terms` pages with shared legal-page chrome and public footer links.
-- README, deployment guide, production-test plan, integration evidence template and security policy aligned to the encrypted whole-file Google model.
-- Documentation storage-flow and banner assets refreshed to remove the obsolete split-Google story.
-- Root product metadata updated for multi-cloud encrypted storage.
-- Durable checkpoint system with verified-state and active-work layers.
-- Provider/encryption/manifest layers remain reusable for a future Android client.
+- Responsive logical filesystem and core file/account flows.
+- Managed Google OAuth plus optional Full Drive indexing code.
+- Provider registry and provider-aware transfer foundation.
+- Google whole-file-only placement with Auto/manual destination selection.
+- Mandatory encryption v1 for all new Meshly-managed files.
+- Public multicloud/encryption landing + demo story.
+- Public `/privacy` and `/terms` pages.
+- Production testing/deployment/security docs aligned to encrypted whole-file Google placement.
+- Durable verified + active-work checkpoint layers.
+- Strict production environment validation:
+  - exact canonical Base64 `TOKEN_ENCRYPTION_KEY` decoding to exactly 32 bytes;
+  - HTTPS required outside localhost;
+  - `GOOGLE_REDIRECT_URI` must exactly equal `NEXT_PUBLIC_APP_URL + /api/auth/google/callback`;
+  - session/encryption/recovery/share/cron secrets must be independent.
+- Environment validation tests covering valid configuration and hardened failure cases.
+- Production preflight now verifies:
+  - `/privacy` and `/terms` availability;
+  - health/readiness;
+  - readiness `encryptionSchema: v1`;
+  - OpenID identity scopes;
+  - `drive.file` + `drive.appdata` managed scopes;
+  - no unexpected full Drive scope in default flow;
+  - `access_type=offline`;
+  - PKCE S256;
+  - exact deployed OAuth callback;
+  - maintenance authentication and cross-origin mutation protection.
 
 ## Verification already completed
 
-GitHub Actions run `36268994840` for runtime/checkpoint-task commit `71e164814de83d858d744d987b54443ef0019f95` passed:
+GitHub Actions run `36269498896` for commit `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5` passed:
 
 - frozen dependency install: **PASS**
 - checkpoint validation: **PASS**
@@ -59,58 +64,41 @@ This is code/CI verification only.
 
 ## Encryption trust model
 
-Do **not** call the current design zero-knowledge or provider-only E2EE. The authenticated planning endpoint generates the random file key and returns it to the browser over TLS while persisting only the wrapped form. The authenticated server download path unwraps keys for decryption/range streaming.
-
-Cloud providers receive ciphertext for new managed files, but the Meshly backend is trusted by the current design.
+Do **not** call the current design zero-knowledge or provider-only E2EE. The authenticated planning/download paths participate in file-key handling. Cloud providers receive ciphertext for new managed files, but the Meshly backend is trusted by the current design.
 
 ## NOT yet proven with real production credentials
 
 - Hosted TLS PostgreSQL + all migrations through `0005`.
-- Complete production environment variables.
+- Complete production environment variables satisfying hardened validation.
 - Deployed `/privacy` and `/terms` on the final production origin.
-- Deployed production preflight/readiness with encryption schema.
+- Deployed preflight/readiness with encryption schema.
 - Real Google OAuth callback.
-- Real encrypted managed upload where the Drive object is opaque ciphertext.
-- Download/decrypt SHA-256 equality with the source file.
-- Auto-choice and manually selected Google-account round trips.
-- Interrupted/resumed encrypted upload at valid encrypted-frame/transport boundaries.
-- Real integrity scan after encrypted upload.
-- Recovery snapshot + restore + decrypt rehearsal.
-- Real sharing of encrypted managed files.
-- Vercel cron authentication.
-- Desktop/mobile deployed visual smoke test.
-- Full Drive index/change sync if broader mode is enabled.
+- Real encrypted managed upload and opaque provider-object inspection.
+- Download/decrypt SHA-256 equality with source.
+- Auto/manual Google destination round trips.
+- Interrupted/resumed encrypted upload.
+- Real integrity, recovery/decrypt, sharing and cron tests.
+- Desktop/mobile deployed smoke test.
+- Full Drive sync if broader mode is enabled.
 
 ## Next actions — do these in order
 
-1. Finish production PostgreSQL and run migrations through `0005_managed_file_encryption.sql`.
-2. Finish production environment/OAuth configuration and deploy the current candidate, including the public Privacy and Terms URLs.
-3. Run automated production preflight and require readiness environment/database/migrations to pass.
-4. Run real encrypted Google upload/download SHA-256 round trips for both Auto and explicitly selected accounts; inspect the remote object for opaque ciphertext/name.
-5. Test interrupted/resumed encrypted upload, integrity, recovery, sharing, cron authentication and desktop/mobile deployment smoke tests.
-6. Run release verification and checkpoint `production_verified` only after every required live test genuinely passes.
-7. Implement the supported TeraBox API adapter behind the provider registry and conservative sequential queue.
-8. Add Dropbox and MEGA adapters; keep MediaFire disabled until current API viability is verified.
-9. Build Android only after provider/encryption format and real provider behavior are stable.
+1. Provision/configure production TLS PostgreSQL and run migrations through `0005_managed_file_encryption.sql`.
+2. Configure production application/OAuth secrets using external secret storage only and satisfy the hardened env validator.
+3. Deploy the candidate and verify `/privacy`, `/terms`, `/api/health` and `/api/readiness`.
+4. Run `pnpm production:preflight https://meshly.cassielae.me --report=.meshly/preflight-report.json` (or the actual final production origin).
+5. Run the required real encrypted Google Auto/manual upload/download tests and inspect the opaque ciphertext object.
+6. Test encrypted resume, integrity, recovery, sharing, cron and desktop/mobile smoke flows.
+7. Run release verification and checkpoint `production_verified` only after all required live tests genuinely pass.
+8. Continue provider adapters (TeraBox, Dropbox, MEGA) only after the production Google path is proven.
 
 ## Invariants
 
-- Every new Meshly-managed file uses encryption v1; there is no plaintext-storage toggle.
-- Do not claim production encryption verification until a real provider upload/download round trip succeeds.
-- Never persist or log plaintext file keys, OAuth credentials, resumable session URLs or application secrets.
-- Recovery manifests never contain OAuth refresh tokens or plaintext file keys.
-- Google managed files stay whole in one account; do not re-enable Google cross-account sharding.
-- Auto/manual Google destination selection must preserve the whole-file rule.
-- Transport multipart/chunking is not the same as persistent distributed storage parts.
-- Generic distributed storage parts require explicit provider capability/opt-in.
-- Provider limits and terms must be respected; do not implement paid-feature, quota, ad or rate-limit bypasses.
-- Prefer supported official provider APIs/SDKs for production provider adapters.
-- Never expose a logical file as ready before its required physical encrypted object verifies.
-- Do not disconnect storage while managed objects depend on it.
-- Provider adapters are capability/test gated before activation.
-- Provider/encryption/manifest logic remains reusable by the future Android client.
+- Every new Meshly-managed file uses encryption v1.
+- Google managed files stay whole in one Google account.
+- Purpose-specific production secrets are independent.
+- Never place production secrets in repository/checkpoint files/issues/screenshots/chat.
+- Do not claim production encryption verification before a real provider round trip succeeds.
+- Current encryption is backend-trusted, not zero-knowledge.
+- Provider limits and terms must be respected.
 - Repository state newer than this checkpoint wins.
-
-## Continuation prompt
-
-> Open `cassielxyz/Meshly`. Read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `CHECKPOINT.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest `docs/checkpoints/*`. Inspect newer main/branch commits, PRs and CI. Continue from the first unfinished action. Preserve mandatory encryption v1 for new managed files and never restore Google cross-account sharding.

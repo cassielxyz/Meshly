@@ -24,7 +24,7 @@ Meshly is designed to be deployed only after every item below is satisfied.
 
 Copy the names from `.env.example` and supply unique production values for all of them.
 
-Generate independent secrets. Do not reuse one value across session, recovery, share-grant, encryption, and cron purposes.
+Generate independent secrets. Do not reuse one value across session, recovery, share-grant, encryption, and cron purposes. Meshly validates that the purpose-specific secrets are distinct, that the token-encryption key is exactly 32 raw bytes in canonical base64, and that the Google callback exactly matches the configured application origin.
 
 ```bash
 openssl rand -base64 48  # SESSION_SECRET
@@ -33,6 +33,8 @@ openssl rand -base64 48  # RECOVERY_SECRET
 openssl rand -base64 48  # SHARE_GRANT_SECRET
 openssl rand -base64 48  # CRON_SECRET
 ```
+
+Production `NEXT_PUBLIC_APP_URL` and `GOOGLE_REDIRECT_URI` must use HTTPS. HTTP is accepted only for localhost development.
 
 Do not paste production secrets into issue comments, checkpoint files, screenshots, or chat. Store them only in the intended secret manager/environment configuration.
 
@@ -44,9 +46,18 @@ After migrations and deployment, run:
 pnpm production:preflight https://YOUR_DOMAIN --report=.meshly/preflight-report.json
 ```
 
-This verifies the public landing page, security headers, `/api/health`, `/api/readiness`, production environment configuration, database reachability, required migrated schema, Google OAuth redirect/PKCE, cron authentication protection and the cross-origin API mutation guard.
+The preflight verifies:
 
-`GET /api/readiness` must return HTTP 200 with `environment`, `database`, and `migrations` all `true` before real-user testing begins.
+- landing, Privacy Policy and Terms pages are publicly reachable as HTML;
+- CSP, anti-framing, content-type and HTTPS/HSTS security headers;
+- `/api/health`;
+- `/api/readiness`, including production environment, database connectivity, migrated schema and `encryptionSchema: "v1"`;
+- Google OAuth redirect, PKCE S256, offline access, OpenID identity scopes, `drive.file` and `drive.appdata`, while rejecting accidental default full-Drive scope;
+- exact production OAuth callback origin/path;
+- unauthenticated maintenance rejection;
+- cross-origin unsafe API mutation rejection.
+
+`GET /api/readiness` must return HTTP 200 with `environment`, `database`, and `migrations` all `true` and `encryptionSchema` equal to `v1` before real-user testing begins.
 
 ## 5. Credential-dependent integration tests
 
