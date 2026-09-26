@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
-import { AES_GCM_TAG_BYTES, NONCE_PREFIX_BYTES, PLAIN_FRAME_BYTES, encryptedPhysicalSize } from "@/lib/storage/encryption-format";
+import { AES_GCM_TAG_BYTES, NONCE_PREFIX_BYTES, PLAIN_FRAME_BYTES, encryptedPhysicalSize } from "../storage/encryption-format";
 
 const WRAP_VERSION = "fk1";
 const WRAP_INFO = Buffer.from("meshly:file-key-wrap:v1", "utf8");
