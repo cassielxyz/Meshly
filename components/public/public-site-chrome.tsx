@@ -2,18 +2,50 @@
 
 import { Github } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const publicRoutes = ["/", "/demo", "/login", "/onboarding"] as const;
+const subscribeHydration = () => () => {};
 
 function isPublicPath(pathname: string) {
   return publicRoutes.some((route) => pathname === route || (route !== "/" && pathname.startsWith(`${route}/`)));
 }
 
+function findHeaderActionTarget() {
+  const explicit = document.querySelector<HTMLElement>("[data-meshly-header-actions]");
+  if (explicit) return explicit;
+
+  const header = document.querySelector("header");
+  const inner = header?.firstElementChild;
+  const fallback = inner?.lastElementChild;
+  return fallback instanceof HTMLElement ? fallback : null;
+}
+
+function HeaderTools() {
+  return (
+    <div className="flex shrink-0 items-center gap-2" aria-label="Public page controls">
+      <a
+        href="https://github.com/cassielxyz/Meshly"
+        target="_blank"
+        rel="noreferrer"
+        className="focus-ring grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] text-[var(--foreground)] shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-strong)]"
+        aria-label="View Meshly source on GitHub"
+        title="View source on GitHub"
+      >
+        <Github size={16} />
+      </a>
+      <ThemeToggle compact />
+    </div>
+  );
+}
+
 export function PublicSiteChrome() {
   const pathname = usePathname();
   const isPublic = isPublicPath(pathname);
+  const hydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
+  const headerTarget = hydrated && isPublic ? findHeaderActionTarget() : null;
 
   useEffect(() => {
     document.body.dataset.meshlyPublic = isPublic ? "true" : "false";
@@ -26,19 +58,7 @@ export function PublicSiteChrome() {
 
   return (
     <>
-      <div className="public-top-tools fixed right-3 top-[78px] z-[65] flex items-center gap-2 sm:right-5 md:top-3.5">
-        <a
-          href="https://github.com/cassielxyz/Meshly"
-          target="_blank"
-          rel="noreferrer"
-          className="focus-ring grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_88%,transparent)] text-[var(--foreground)] shadow-[0_5px_20px_rgba(0,0,0,.08)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--surface-strong)] hover:shadow-[0_7px_24px_rgba(0,0,0,.12)]"
-          aria-label="View Meshly source on GitHub"
-          title="View source on GitHub"
-        >
-          <Github size={16} />
-        </a>
-        <ThemeToggle compact />
-      </div>
+      {headerTarget ? createPortal(<HeaderTools />, headerTarget) : null}
 
       <footer className="public-credit-footer border-t border-[var(--border)] bg-[var(--background)] px-5 py-10 text-[var(--muted)] sm:px-8 sm:py-12">
         <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
