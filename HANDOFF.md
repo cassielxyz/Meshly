@@ -4,47 +4,67 @@
 
 **Updated:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `work/production-preflight-hardening`  
-**Active PR:** `#6`  
-**Verified runtime commit:** `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`  
-**Verified CI run:** `36269498896`
+**Active branch:** `work/production-live-verification`  
+**Active PR:** pending  
+**Current main:** `eb755a886162194b08f40e275cc96b2d6d90c418`  
+**Last verified code milestone:** production preflight hardening (`bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`, CI `36269498896`)  
+**Checkpoint-only CI:** `36279720209` — PASS
 
 ## Active task
 
-Production preflight/environment hardening is implemented and the full CI gate has passed.
+Continue the real production verification phase from the deployed `main` build without storing credentials in Git or chat.
 
-Verified work includes:
+## Live production probe already completed
 
-- exact canonical-base64 32-byte `TOKEN_ENCRYPTION_KEY` validation;
-- HTTPS requirement outside localhost;
-- exact Google callback binding to `NEXT_PUBLIC_APP_URL`;
-- purpose-specific secret reuse rejection;
-- environment validation tests;
-- preflight checks for `/privacy`, `/terms`, readiness `encryptionSchema: v1`, OpenID identity scopes, managed Drive scopes, offline access, PKCE and exact callback;
-- deployment guidance updated for the hardened validator/preflight.
+Production deployment for `main` commit `eb755a886162194b08f40e275cc96b2d6d90c418` is **READY** on `meshly.cassielae.me`.
 
-## Verification state
+Verified live without authentication:
 
-GitHub Actions run `36269498896` passed frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and optimized production build for `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`.
+- `/` → HTTP 200; current multicloud/encrypted landing page is deployed.
+- `/privacy` → HTTP 200.
+- `/terms` → HTTP 200.
+- `/api/health` → HTTP 200 with `oauthConfigured: true` and `databaseConfigured: true`.
+- `/api/auth/google/start` → HTTP 307 to Google with:
+  - `openid`, `email`, `profile`;
+  - `drive.file`, `drive.appdata`;
+  - no full Drive scope in the managed flow;
+  - `access_type=offline`;
+  - PKCE S256;
+  - callback `https://meshly.cassielae.me/api/auth/google/callback`.
+- Production security headers are present on the deployed public surface, including CSP, HSTS, frame denial and `nosniff`.
+- Vercel reported no grouped runtime errors in the inspected 24-hour window.
 
-This proves code/CI only. Real production database/OAuth/provider behavior remains pending.
+## Current blocker
+
+`GET https://meshly.cassielae.me/api/readiness` returns HTTP **503** because production environment validation reports:
+
+`missing: ["TOKEN_ENCRYPTION_KEY"]`
+
+This is now the first blocking item. Database reachability/migrations are **not yet proven** by readiness because strict environment validation stops first.
+
+`TOKEN_ENCRYPTION_KEY` must remain the current hardened format: exactly 32 cryptographically random raw bytes encoded as canonical Base64. Do not place the value in this repository, issues, screenshots or chat.
 
 ## Exact next action
 
-1. Let the checkpoint-only commit pass CI.
-2. Merge PR #6 into `main`.
-3. Continue production PostgreSQL/OAuth/environment/deployment setup using external secret storage only.
-4. Run production preflight and all required real encrypted Google integration tests.
+1. Add `TOKEN_ENCRYPTION_KEY` to the Meshly **Production** environment in Vercel using a locally generated 32-byte Base64 value.
+2. Redeploy production so the new environment value is loaded.
+3. Re-run `/api/readiness` immediately.
+4. If readiness advances to a database/migration failure, fix that next. If readiness is HTTP 200, continue to real Google sign-in and encrypted Auto/manual round-trip verification.
+
+Safe local generation examples (run outside chat):
+
+- `openssl rand -base64 32`
+- `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
 
 ## Blockers outside code
 
-Production PostgreSQL credentials, Google OAuth secret and application secrets are not configured. Never place them in repository checkpoint files, issues, screenshots or chat.
+The connected Vercel tooling available to the agent can inspect deployments and runtime state but does not expose an environment-variable write action. Therefore the production key must be added through the user-controlled Vercel environment/secret UI or another authorized secret-management path.
 
 ## Invariants
 
-- New Meshly-managed files are encrypted before provider storage.
-- Google managed files are whole-file-only in one Google account.
-- Purpose-specific production secrets must be independent.
+- Never request or store the actual production key in chat or repository files.
+- New Meshly-managed files remain encrypted before provider storage.
+- Google managed files remain whole-file-only in one Google account.
 - Current encryption is backend-trusted, not zero-knowledge.
-- Provider limits and terms must be respected.
-- Repository commits newer than this handoff always win.
+- Purpose-specific production secrets remain independent.
+- Repository/deployment state newer than this handoff wins.

@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
-  "activeBranch": "work/production-preflight-hardening",
-  "activePullRequest": 6,
-  "resumeStatus": "verified_milestone_merge_pending",
+  "activeBranch": "work/production-live-verification",
+  "resumeStatus": "blocked_on_external_environment_configuration",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-preflight-hardening.md",
   "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
   "lastVerifiedCiRun": "36269498896",
+  "deployedMainCommit": "eb755a886162194b08f40e275cc96b2d6d90c418",
   "requiredReads": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -20,16 +20,19 @@
   ],
   "resumeProcedure": [
     "inspect_current_main_and_active_branch_heads",
-    "inspect_pr_6_and_newest_ci",
-    "merge_pr_6_if_checkpoint_only_ci_is_green",
-    "continue_production_database_oauth_environment_and_deployment_configuration",
-    "run_production_preflight_and_required_live_encrypted_google_tests",
+    "inspect_latest_production_deployment",
+    "rerun_health_and_readiness_before_assuming_the_blocker_is_unchanged",
+    "if_token_encryption_key_is_still_missing_wait_for_external_secret_configuration",
+    "after_redeploy_rerun_readiness",
+    "continue_required_real_encrypted_google_integration_tests_when_readiness_is_green",
     "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Verify the checkpoint-only PR #6 CI; if green merge it, then continue external production configuration and live encrypted Google verification.",
+  "exactNextAction": "Add the production TOKEN_ENCRYPTION_KEY outside chat/repository, redeploy, then rerun /api/readiness and continue from the next reported blocker.",
   "notes": [
-    "repository_newer_than_checkpoint_files_wins",
-    "do_not_ask_the_user_to_reconstruct_lost_chat_context_when_repository_state_is_available",
-    "do_not_store_or_request_production_secrets_in_checkpoint_files_or_chat"
+    "root_privacy_terms_and_health_are_live",
+    "managed_google_oauth_start_scopes_offline_pkce_and_callback_have_been_live_probed",
+    "readiness_currently_returns_503_missing_TOKEN_ENCRYPTION_KEY",
+    "database_migrations_are_not_yet_proven_because_environment_validation_fails_first",
+    "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
