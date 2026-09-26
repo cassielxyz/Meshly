@@ -5,9 +5,9 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
 import { useEffect, useRef } from "react";
 
 const accounts = [
-  { name: "Personal", free: "4.2 GB free", color: "#4C8DFF" },
+  { name: "Personal", free: "4.2 GB free", color: "#4C8DFF", selected: false },
   { name: "Projects", free: "18.6 GB free", color: "#42D987", selected: true },
-  { name: "Backup", free: "12.1 GB free", color: "#F6C94C" },
+  { name: "Backup", free: "12.1 GB free", color: "#F6C94C", selected: false },
 ] as const;
 
 export function LivePlacementMap() {
