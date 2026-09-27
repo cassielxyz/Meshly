@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
 
 type ActivityRow = {
@@ -26,7 +25,7 @@ export function DownloadsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     const response = await fetch("/api/activity", { cache: "no-store" });
     if (!response.ok) {
@@ -38,9 +37,12 @@ export function DownloadsView() {
     setRows(data.activities.filter((item) => item.kind.includes("download")));
     setError("");
     setLoading(false);
-  }
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const initial = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(initial);
+  }, [load]);
 
   return <div className="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Downloads</h1><p className="mt-1 text-sm text-[var(--muted)]">Authenticated Meshly download requests from this workspace.</p></div><button className="btn" onClick={() => void load()}><RefreshCw size={16}/>Refresh</button></div>
@@ -50,7 +52,7 @@ export function DownloadsView() {
     {!loading && rows.length > 0 && <div className="mesh-card mt-6 divide-y divide-[var(--border)]">{rows.map((row) => {
       const name = typeof row.metadata.name === "string" ? row.metadata.name : "Meshly file";
       const ranged = row.metadata.ranged === true;
-      return <div key={row.id} className="flex flex-wrap items-center gap-4 p-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--blue-soft)] text-[var(--blue)]"><Download size={18}/></div><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{name}</div><div className="mt-1 text-xs text-[var(--muted)]">{fmtSize(row.metadata.size)} · {ranged ? "Range request" : "Full download request"} · {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.createdAt))}</div></div>{row.subjectId && <Link className="btn" href={`/api/files/${row.subjectId}/download`}>Download again</Link>}</div>;
+      return <div key={row.id} className="flex flex-wrap items-center gap-4 p-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--blue-soft)] text-[var(--blue)]"><Download size={18}/></div><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{name}</div><div className="mt-1 text-xs text-[var(--muted)]">{fmtSize(row.metadata.size)} · {ranged ? "Range request" : "Full download request"} · {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.createdAt))}</div></div>{row.subjectId && <a className="btn" href={`/api/files/${row.subjectId}/download`}>Download again</a>}</div>;
     })}</div>}
   </div>;
 }
