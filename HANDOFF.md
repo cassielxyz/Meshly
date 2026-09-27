@@ -43,14 +43,15 @@ The branch now contains:
 - User-completed Full Drive indexing and exact Google quota comparison are still pending browser verification.
 - Meshly must not be called `production_verified` yet.
 
-## Next actions
+## Exact next action
 
-1. Merge PR #13 only after the latest branch CI remains green.
-2. Let the production migration runner apply `0007_provider_objects.sql`; verify `/api/readiness` returns HTTP 200 with `providerSchema: "v2"` while the Dropbox upload gate stays off.
-3. Continue non-secret-safe work on TeraBox encrypted transfers and provider UI while waiting for external provider credentials.
-4. When Dropbox application credentials are configured outside chat, connect a test account and live-test encrypted upload -> opaque object -> download/decrypt SHA-256 equality, interrupted/retried transfer, integrity scan, permanent delete and recovery restore.
-5. Only after those tests pass may `DROPBOX_MANAGED_UPLOADS_ENABLED=true` be set in production and exposed as an active upload destination.
-6. Separately complete the pending Full Drive existing-file/quota verification in the authenticated browser.
+1. Verify the newest PR #13 CI after this checkpoint-only fix.
+2. Merge PR #13 only after that exact head is green.
+3. Let the production migration runner apply `0007_provider_objects.sql`; verify `/api/readiness` returns HTTP 200 with `providerSchema: "v2"` while the Dropbox upload gate stays off.
+4. Continue non-secret-safe work on TeraBox encrypted transfers and provider UI while waiting for external provider credentials.
+5. When Dropbox application credentials are configured outside chat, connect a test account and live-test encrypted upload -> opaque object -> download/decrypt SHA-256 equality, interrupted/retried transfer, integrity scan, permanent delete and recovery restore.
+6. Only after those tests pass may `DROPBOX_MANAGED_UPLOADS_ENABLED=true` be set in production and exposed as an active upload destination.
+7. Separately complete the pending Full Drive existing-file/quota verification in the authenticated browser.
 
 ## Invariants
 
