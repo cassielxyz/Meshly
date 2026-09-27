@@ -4,7 +4,7 @@
   "repository": "cassielxyz/Meshly",
   "activeBranch": "work/production-live-verification",
   "activePullRequest": 7,
-  "resumeStatus": "blocked_on_production_database_migrations",
+  "resumeStatus": "autonomous_production_migration_verification_pending",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-preflight-hardening.md",
   "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
   "lastVerifiedCiRun": "36269498896",
@@ -21,19 +21,22 @@
   ],
   "resumeProcedure": [
     "inspect_current_main_and_active_branch_heads",
-    "inspect_latest_production_deployment",
-    "rerun_health_and_readiness_before_assuming_the_blocker_is_unchanged",
-    "if_migrations_false_wait_for_or_help_run_production_pnpm_db_migrate_without_exposing_database_url",
-    "after_migration_rerun_readiness_and_require_all_three_readiness_gates_true",
+    "inspect_pr_7_and_latest_ci",
+    "merge_pr_7_if_ci_is_green",
+    "inspect_production_vercel_build_logs_for_migration_execution",
+    "rerun_health_and_readiness",
+    "require_readiness_environment_database_and_migrations_true",
     "continue_required_real_encrypted_google_integration_tests_when_readiness_is_green",
     "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Run pnpm db:migrate against the production DATABASE_URL outside chat, then rerun /api/readiness; if green continue real Google OAuth and encrypted round-trip verification.",
+  "exactNextAction": "Verify the latest PR #7 CI, merge if green, then confirm the production Vercel build applies migrations 0001-0005 and rerun /api/readiness.",
   "notes": [
-    "production_token_encryption_key_is_now_accepted",
+    "production_token_encryption_key_is_accepted",
     "readiness_environment_true",
     "readiness_database_true",
-    "readiness_migrations_false",
+    "readiness_migrations_false_before_autonomous_migration_deploy",
+    "runtime_schema_error_users_relation_missing",
+    "production_only_vercel_migration_wrapper_is_implemented_on_pr_7",
     "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
