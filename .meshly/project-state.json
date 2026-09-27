@@ -4,11 +4,11 @@
   "repository": "cassielxyz/Meshly",
   "branch": "main",
   "phase": "provider_transfer_foundations_live_verification",
-  "status": "dropbox_transfer_foundation_deployed_gated_terabox_pr_in_progress",
+  "status": "pr14_merged_production_deploy_rate_limited",
   "checkpointDate": "2026-09-28",
-  "generatedFromCommit": "9018491a83d9663dc09b32c9889c3133cac15e01",
+  "generatedFromCommit": "a74596ae8a12c4c9025914112807162e9af17cce",
   "lastVerifiedRuntimeCommit": "9018491a83d9663dc09b32c9889c3133cac15e01",
-  "lastVerifiedCiRun": "36321037829",
+  "lastVerifiedCiRun": "36344842001",
   "verifiedProductionDeployment": "dpl_4yceJJbueyJS978P2sviWdPkQ2By",
   "requiredReads": [
     "AGENTS.md",
@@ -39,6 +39,8 @@
     "terabox_official_open_platform_quota_browse_foundation",
     "other_clouds_live_connection_ui",
     "mega_explicit_sdk_worker_gate",
+    "pr14_google_quota_category_correction_ci_verified_and_merged",
+    "pr14_activation_gated_terabox_small_file_transfer_ci_verified_and_merged",
     "durable_checkpoint_layers"
   ],
   "verifiedByCI": [
@@ -49,19 +51,20 @@
     "strict_typescript",
     "vitest",
     "next_production_build",
-    "provider_object_and_dropbox_transfer_foundation"
+    "provider_object_and_dropbox_transfer_foundation",
+    "google_quota_v2_and_terabox_small_file_foundation_at_pr14_head_528ed99"
   ],
   "verifiedLive": [
     "production_deployment_ready_at_main_9018491",
     "environment_validation_true",
     "database_connectivity_true",
-    "migrations_true",
+    "migrations_true_through_provider_schema_v2",
     "encryption_schema_v1",
     "provider_schema_v2",
     "production_security_headers"
   ],
   "pendingIntegration": [
-    "pr14_exact_head_ci_and_merge",
+    "production_deploy_main_a74596_after_vercel_rate_limit_clears",
     "production_migration_0008_google_quota_breakdown",
     "user_grants_full_drive_read_consent_for_existing_files",
     "verify_initial_index_lists_preexisting_google_files",
@@ -74,8 +77,7 @@
     "real_integrity_recovery_share_cron_smoke_tests"
   ],
   "nextActions": [
-    "verify_pr14_exact_head_ci_and_fix_failures",
-    "merge_pr14_only_when_green_and_gates_remain_off",
+    "wait_for_vercel_build_rate_window_then_retry_current_main_deployment",
     "verify_production_google_quota_schema_v2_after_migration_0008",
     "user_runs_show_existing_files_and_compares_google_quota_categories",
     "run_google_auto_and_selected_encrypted_sha256_round_trips",
@@ -84,6 +86,7 @@
     "checkpoint_production_verified_only_after_required_live_tests_pass"
   ],
   "externalConstraints": [
+    "vercel_build_rate_limit_currently_blocks_new_production_deployment_retry_in_24_hours",
     "existing_google_file_access_requires_explicit_user_consent",
     "dropbox_and_terabox_live_flows_require_external_provider_application_credentials",
     "real_oauth_flows_require_user_interaction",
@@ -93,6 +96,7 @@
   ],
   "invariants": [
     "repository_and_deployment_state_newer_than_checkpoint_wins",
+    "do_not_call_merged_pr14_production_deployed_until_a_new_ready_deployment_is_verified",
     "every_new_managed_file_uses_encryption_v1",
     "google_managed_uploads_remain_whole_file_only",
     "preexisting_google_files_are_indexed_only_after_explicit_broader_read_consent",
