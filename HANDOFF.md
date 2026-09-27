@@ -37,11 +37,11 @@ To avoid asking the user to copy `DATABASE_URL` into Codespaces or chat, PR #7 n
 
 The application migration runner remains the single source of truth; no production credential is copied into Git or chat.
 
-GitHub Actions run `36284399176` passed install, checkpoint validation, production dependency audit, lint, strict TypeScript, tests and the normal production build for the migration-wrapper implementation before this checkpoint update.
+GitHub Actions run `36284399176` passed install, checkpoint validation, production dependency audit, lint, strict TypeScript, tests and the normal production build for the migration-wrapper implementation. Later checkpoint-only commits do not change the runtime migration behavior.
 
 ## Exact next action
 
-1. Verify the checkpoint-only CI for the latest PR #7 head.
+1. Verify the newest PR #7 CI for the current head.
 2. Merge PR #7 when green.
 3. Let the main production Vercel deployment run `vercel-build`; it should apply migrations `0001` through `0005` using the already-configured production `DATABASE_URL`, then build/deploy.
 4. Inspect deployment logs to confirm migrations were applied/skipped correctly without secret output.
