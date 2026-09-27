@@ -117,7 +117,13 @@ async function rpc<T>(accessToken: string, path: string, body: unknown = null) {
   return response.json() as Promise<T>;
 }
 
-async function contentRpc<T>(accessToken: string, path: string, arg: unknown, body: Uint8Array | ArrayBuffer | null) {
+function arrayBufferBody(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function contentRpc<T>(accessToken: string, path: string, arg: unknown, body: ArrayBuffer | null) {
   const response = await fetch(`${DROPBOX_CONTENT}${path}`, {
     method: "POST",
     headers: {
@@ -125,7 +131,7 @@ async function contentRpc<T>(accessToken: string, path: string, arg: unknown, bo
       "content-type": "application/octet-stream",
       "dropbox-api-arg": JSON.stringify(arg),
     },
-    body: body == null ? new Uint8Array(0) : body,
+    body: body ?? new ArrayBuffer(0),
     cache: "no-store",
   });
   if (!response.ok) {
@@ -256,7 +262,7 @@ export async function startDropboxUploadSession(accessToken: string) {
 
 export async function appendDropboxUploadSession(accessToken: string, sessionId: string, offset: number, body: Uint8Array) {
   try {
-    await contentRpc<void>(accessToken, "/files/upload_session/append_v2", { cursor: { session_id: sessionId, offset }, close: false }, body);
+    await contentRpc<void>(accessToken, "/files/upload_session/append_v2", { cursor: { session_id: sessionId, offset }, close: false }, arrayBufferBody(body));
     return { acceptedOffset: offset + body.byteLength, reconciled: false as const };
   } catch (error) {
     const providerError = error as Error & { status?: number; detail?: unknown };
