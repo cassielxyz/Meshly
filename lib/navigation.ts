@@ -1,4 +1,4 @@
 export const primaryNavigation=[{slug:"drive",label:"Google Drives"},{slug:"recent",label:"Recent"},{slug:"starred",label:"Starred"},{slug:"shared",label:"Shared"},{slug:"trash",label:"Trash"}] as const;
-export const systemNavigation=[{slug:"clouds",label:"Other Clouds"},{slug:"storage",label:"Google Storage"},{slug:"accounts",label:"Google Accounts"},{slug:"transfers",label:"Transfers"},{slug:"activity",label:"Activity"},{slug:"integrity",label:"Integrity"}] as const;
-export const workspaceSections=["recent","starred","shared","trash","storage","accounts","transfers","activity","integrity","recovery","notifications","diagnostics","help","privacy","profile"] as const;
+export const systemNavigation=[{slug:"clouds",label:"Other Clouds"},{slug:"storage",label:"Google Storage"},{slug:"accounts",label:"Google Accounts"},{slug:"transfers",label:"Transfers"},{slug:"downloads",label:"Downloads"},{slug:"activity",label:"Activity"},{slug:"analytics",label:"Analytics"},{slug:"integrity",label:"Integrity"}] as const;
+export const workspaceSections=["recent","starred","shared","trash","storage","accounts","transfers","downloads","activity","analytics","integrity","recovery","notifications","diagnostics","help","privacy","profile"] as const;
 export const settingsTabs=["general","storage","transfers","appearance","security","notifications","advanced"] as const;
