@@ -17,7 +17,7 @@ import { createManagedFileEncryption } from "@/lib/security/file-encryption";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
 import { AES_GCM_TAG_BYTES } from "@/lib/storage/encryption-format";
 
-export const PROVIDER_PROXY_CHUNK_BYTES = 3 * 1024 * 1024;
+const PROVIDER_PROXY_CHUNK_BYTES = 3 * 1024 * 1024;
 const DROPBOX_ROOT = "/Meshly Storage";
 
 const inputSchema = z.object({
