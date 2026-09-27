@@ -15,9 +15,10 @@ const schema = z.object({
 });
 
 function expectedRemoteMd5(metadata: Record<string, unknown>) {
+  if (typeof metadata.remoteMd5 === "string") return metadata.remoteMd5.toLowerCase();
   const blockMd5 = metadata.blockMd5;
-  if (Array.isArray(blockMd5) && typeof blockMd5[0] === "string") return blockMd5[0].toLowerCase();
-  return typeof metadata.remoteMd5 === "string" ? metadata.remoteMd5.toLowerCase() : null;
+  if (Array.isArray(blockMd5) && blockMd5.length === 1 && typeof blockMd5[0] === "string") return blockMd5[0].toLowerCase();
+  return null;
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
