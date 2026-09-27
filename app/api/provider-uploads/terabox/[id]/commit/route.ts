@@ -14,6 +14,12 @@ const schema = z.object({
   ciphertextSha256: z.string().regex(/^[a-f0-9]{64}$/i),
 });
 
+function expectedRemoteMd5(metadata: Record<string, unknown>) {
+  const blockMd5 = metadata.blockMd5;
+  if (Array.isArray(blockMd5) && typeof blockMd5[0] === "string") return blockMd5[0].toLowerCase();
+  return typeof metadata.remoteMd5 === "string" ? metadata.remoteMd5.toLowerCase() : null;
+}
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     if (!isTeraBoxManagedUploadsEnabled()) return NextResponse.json({ error: "terabox_managed_uploads_not_enabled" }, { status: 503 });
@@ -48,6 +54,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "remote_encrypted_object_verification_failed" }, { status: 409 });
     }
 
+    const metadata = (row.object.metadata ?? {}) as Record<string, unknown>;
+    const expectedMd5 = expectedRemoteMd5(metadata);
+    const actualMd5 = verified.metadata.md5?.toLowerCase() ?? null;
+    if (expectedMd5 && actualMd5 && expectedMd5 !== actualMd5) {
+      return NextResponse.json({ error: "remote_encrypted_object_md5_mismatch" }, { status: 409 });
+    }
+
     const now = new Date();
     await db.transaction(async (tx) => {
       await tx.update(providerObjects).set({
@@ -55,7 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ciphertextSha256: input.ciphertextSha256.toLowerCase(),
         uploadedBytes: row.object.physicalSize,
         status: "ready",
-        metadata: { ...row.object.metadata, remoteMd5: verified.metadata!.md5 ?? null, verifiedSize: row.object.physicalSize },
+        metadata: { ...metadata, remoteMd5: verified.metadata!.md5 ?? null, verifiedSize: row.object.physicalSize },
         updatedAt: now,
       }).where(eq(providerObjects.id, row.object.id));
       await tx.update(logicalFiles).set({ sha256: input.sha256.toLowerCase(), status: "ready", updatedAt: now }).where(eq(logicalFiles.id, row.file.id));
