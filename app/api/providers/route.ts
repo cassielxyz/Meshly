@@ -4,6 +4,7 @@ import { getDb } from "@/db/client";
 import { providerAccounts } from "@/db/provider-schema";
 import { isDropboxConfigured, isDropboxManagedUploadsEnabled, refreshDropboxAccount } from "@/lib/providers/dropbox";
 import { getTeraBoxAuthorizationUrl, isTeraBoxConfigured, isTeraBoxManagedUploadsEnabled, refreshTeraBoxAccount } from "@/lib/providers/terabox";
+import { isTeraBoxLargeWorkerEnabled } from "@/lib/providers/terabox-worker";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
 
 function safe(account: typeof providerAccounts.$inferSelect) {
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
         dropboxManagedUploads: isDropboxManagedUploadsEnabled(),
         terabox: teraboxConfigured,
         teraboxManagedUploads: isTeraBoxManagedUploadsEnabled(),
+        teraboxLargeWorker: isTeraBoxLargeWorkerEnabled(),
         mega: false,
       },
       teraboxAuthorizationUrl: teraboxConfigured ? getTeraBoxAuthorizationUrl() : null,
