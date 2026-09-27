@@ -21,30 +21,38 @@ Verified on `https://meshly.cassielae.me`:
 - `/api/health` → HTTP 200 with OAuth/database configured.
 - managed Google OAuth start uses identity + `drive.file` + `drive.appdata`, offline access, PKCE S256 and the exact production callback.
 - production security headers are present.
-- `TOKEN_ENCRYPTION_KEY` is now accepted by strict environment validation after the user configured it and redeployed.
+- `TOKEN_ENCRYPTION_KEY` is accepted by strict environment validation.
+- `/api/readiness` currently proves `environment: true` and `database: true` but `migrations: false`.
+- runtime logs show the concrete schema failure is `relation "users" does not exist`.
 
-## Current blocker
+## Autonomous migration fix implemented on this branch
 
-`GET /api/readiness` now returns HTTP **503** with:
+To avoid asking the user to copy `DATABASE_URL` into Codespaces or chat, PR #7 now adds a Vercel-only production build wrapper:
 
-```json
-{"ok":false,"service":"meshly","environment":true,"database":true,"migrations":false}
-```
+- `scripts/vercel-build.mjs` runs the existing checksum-verified transactional `scripts/migrate.mjs` **only when `VERCEL_ENV=production`**;
+- preview/local/CI builds skip database migration;
+- production build fails closed if `DATABASE_URL` is unavailable;
+- after migrations, the wrapper runs the normal Next.js production build;
+- `package.json` exposes this as the Vercel `vercel-build` script.
 
-This proves the production environment and database connection are valid. The next blocker is database schema migration state.
+The application migration runner remains the single source of truth; no production credential is copied into Git or chat.
 
-Meshly currently has migrations `0001` through `0005_managed_file_encryption.sql`, and `pnpm db:migrate` applies them transactionally while recording checksums in `_meshly_migrations`.
+GitHub Actions run `36284399176` passed install, checkpoint validation, production dependency audit, lint, strict TypeScript, tests and the normal production build for the migration-wrapper implementation before this checkpoint update.
 
 ## Exact next action
 
-1. Run `pnpm db:migrate` against the same production `DATABASE_URL` used by Meshly. Do this through a trusted local/Codespaces environment or the database provider's secure console; do not paste the URL into chat.
-2. Re-run `https://meshly.cassielae.me/api/readiness`.
-3. Require HTTP 200 with `environment`, `database`, and `migrations` all true.
-4. Then continue real Google sign-in and encrypted Auto/manual upload/download SHA-256 verification.
+1. Verify the checkpoint-only CI for the latest PR #7 head.
+2. Merge PR #7 when green.
+3. Let the main production Vercel deployment run `vercel-build`; it should apply migrations `0001` through `0005` using the already-configured production `DATABASE_URL`, then build/deploy.
+4. Inspect deployment logs to confirm migrations were applied/skipped correctly without secret output.
+5. Re-run `https://meshly.cassielae.me/api/readiness` and require HTTP 200 with `environment`, `database`, and `migrations` all true.
+6. Then continue real Google sign-in and encrypted Auto/manual upload/download SHA-256 verification.
 
 ## Invariants
 
 - Never request or store production secrets in chat or repository files.
+- Production migrations must be idempotent/checksum-verified and run before the production app build becomes deployable.
+- Preview/local/CI builds must not mutate the production database.
 - New Meshly-managed files remain encrypted before provider storage.
 - Google managed files remain whole-file-only in one Google account.
 - Current encryption is backend-trusted, not zero-knowledge.
