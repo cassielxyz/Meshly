@@ -11,9 +11,10 @@ import {
   refreshTeraBoxAccount,
   TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES,
 } from "@/lib/providers/terabox";
+import { createTeraBoxWorkerToken, getTeraBoxWorkerUrl, isTeraBoxLargeWorkerEnabled } from "@/lib/providers/terabox-worker";
 import { createManagedFileEncryption } from "@/lib/security/file-encryption";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
-import { AES_GCM_TAG_BYTES } from "@/lib/storage/encryption-format";
+import { AES_GCM_TAG_BYTES, frameCount } from "@/lib/storage/encryption-format";
 
 const inputSchema = z.object({
   providerAccountId: z.string().min(1),
@@ -58,11 +59,14 @@ export async function POST(request: NextRequest) {
     const fileId = nanoid();
     const objectId = nanoid();
     const encryption = createManagedFileEncryption(fileId, input.size);
-    if (encryption.physicalSize > TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES) {
+    const frames = frameCount(input.size, encryption.framePlainBytes);
+    const maxPartBytes = encryption.framePlainBytes + AES_GCM_TAG_BYTES;
+    const useWorker = encryption.physicalSize > TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES;
+    if (useWorker && !isTeraBoxLargeWorkerEnabled()) {
       return NextResponse.json({
-        error: "terabox_serverless_small_file_limit",
+        error: "terabox_large_worker_not_enabled",
         maxCiphertextBytes: TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES,
-        message: "Large TeraBox managed uploads remain disabled until the dedicated transfer worker is deployed.",
+        message: "This TeraBox upload needs the dedicated large-file transfer worker, which is not enabled on this deployment.",
       }, { status: 413 });
     }
 
@@ -75,6 +79,7 @@ export async function POST(request: NextRequest) {
 
     const physicalName = `msh_${nanoid(24)}.bin`;
     const remotePath = getTeraBoxManagedPath(physicalName);
+    const transport = useWorker ? "terabox-worker-v1" : "terabox-single-shard-v1";
     await db.transaction(async (tx) => {
       await tx.insert(logicalFiles).values({
         id: fileId,
@@ -100,16 +105,38 @@ export async function POST(request: NextRequest) {
         physicalSize: encryption.physicalSize,
         uploadedBytes: 0,
         status: "uploading",
-        metadata: { encryptionVersion: 1, transport: "terabox-single-shard-v1", serverlessSmallFile: true },
+        metadata: {
+          encryptionVersion: 1,
+          transport,
+          serverlessSmallFile: !useWorker,
+          ...(useWorker ? { workerFrames: frames, workerMaxPartBytes: maxPartBytes } : {}),
+        },
       });
     });
+
+    const worker = useWorker ? {
+      url: getTeraBoxWorkerUrl(),
+      token: createTeraBoxWorkerToken({
+        objectId,
+        fileId,
+        userId,
+        physicalSize: encryption.physicalSize,
+        frames,
+        maxPartBytes,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+      }),
+      frames,
+      maxPartBytes,
+    } : null;
 
     return NextResponse.json({
       fileId,
       objectId,
       provider: "terabox",
       providerAccountId: account.id,
+      transport: useWorker ? "worker" : "serverless",
       maxCiphertextBytes: TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES,
+      worker,
       encryption: {
         version: encryption.version,
         key: encryption.rawKeyBase64Url,
