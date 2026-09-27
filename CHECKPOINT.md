@@ -1,23 +1,26 @@
 # Meshly — canonical continuation checkpoint
 
-> **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits always win over this document.
+> **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits and live deployment state always win over this document.
 
 **Checkpoint date:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Latest verified runtime commit:** `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`  
-**Latest verified CI run:** `36269498896`  
-**Latest milestone record:** `docs/checkpoints/2026-09-27-production-preflight-hardening.md`
+**Latest verified runtime commit:** `8c748046577739f679eebc9863139c6d983cadda`  
+**Latest verified CI run:** `36285454881`  
+**Verified production deployment:** `dpl_Hf3g7pzhCto1LspvNFQU9ppCH7zZ`  
+**Latest milestone record:** `docs/checkpoints/2026-09-27-production-readiness-green.md`
 
 ## Current state
 
-Meshly is a provider-independent multi-cloud workspace with separate **Google Drives** and **Other Clouds** areas. Google managed uploads use whole-file placement only; Google cross-account sharding stays disabled.
+Meshly is deployed at `https://meshly.cassielae.me` with the production environment, PostgreSQL connectivity and schema migrations verified live.
 
-Every **new Meshly-managed upload** uses encryption v1 before provider storage. Existing legacy managed files and externally indexed Drive files remain readable for compatibility.
+`/api/readiness` now returns HTTP 200 with `environment: true`, `database: true`, `migrations: true`, and `encryptionSchema: "v1"`.
 
-The production configuration path is now hardened in code: environment validation enforces HTTPS outside localhost, an exact Google callback bound to `NEXT_PUBLIC_APP_URL`, an exact canonical-base64 32-byte `TOKEN_ENCRYPTION_KEY`, and independent purpose-specific application secrets. Production preflight verifies public legal pages, readiness including `encryptionSchema: v1`, identity and managed Drive OAuth scopes, offline access, PKCE and the exact callback.
+The production migration path is autonomous: Vercel production builds run the checksum-verified transactional migration runner before the Next.js build, while preview/local/CI builds do not mutate the production database.
 
-Production database/credentials/deployed provider verification are still pending. Do not treat CI as proof of a live Google round trip.
+The migration blocker was diagnosed without exposing `DATABASE_URL`: a rollback-only preview probe proved PostgreSQL `42601` at the unquoted `offset` column in `0001_meshly.sql`. The column is now quoted as `"offset"`; the subsequent production deployment completed successfully and migrations through `0005` are live.
+
+The next phase is authenticated Google/provider verification. Do **not** call Meshly `production_verified` yet because a real Google OAuth callback and encrypted upload/download round trip have not been proven.
 
 ## Completed in code
 
@@ -30,37 +33,27 @@ Production database/credentials/deployed provider verification are still pending
 - Public `/privacy` and `/terms` pages.
 - Production testing/deployment/security docs aligned to encrypted whole-file Google placement.
 - Durable verified + active-work checkpoint layers.
-- Strict production environment validation:
-  - exact canonical Base64 `TOKEN_ENCRYPTION_KEY` decoding to exactly 32 bytes;
-  - HTTPS required outside localhost;
-  - `GOOGLE_REDIRECT_URI` must exactly equal `NEXT_PUBLIC_APP_URL + /api/auth/google/callback`;
-  - session/encryption/recovery/share/cron secrets must be independent.
-- Environment validation tests covering valid configuration and hardened failure cases.
-- Production preflight now verifies:
-  - `/privacy` and `/terms` availability;
-  - health/readiness;
-  - readiness `encryptionSchema: v1`;
-  - OpenID identity scopes;
-  - `drive.file` + `drive.appdata` managed scopes;
-  - no unexpected full Drive scope in default flow;
-  - `access_type=offline`;
-  - PKCE S256;
-  - exact deployed OAuth callback;
-  - maintenance authentication and cross-origin mutation protection.
+- Strict production environment validation for HTTPS, exact callback, canonical 32-byte Base64 encryption key and independent application secrets.
+- Hardened production preflight checks for legal pages, readiness, managed OAuth scopes, offline access and PKCE S256.
+- Production-only Vercel migration-before-build wrapper.
+- Production migration runner uses TLS and disabled prepared statements to match runtime PostgreSQL behavior.
+- Initial PostgreSQL migration quotes the reserved `offset` chunk column.
 
 ## Verification already completed
 
-GitHub Actions run `36269498896` for commit `bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5` passed:
+GitHub Actions run `36285454881` for main commit `8c748046577739f679eebc9863139c6d983cadda` passed the repository verification gate.
 
-- frozen dependency install: **PASS**
-- checkpoint validation: **PASS**
-- production dependency security audit: **PASS**
-- ESLint: **PASS**
-- strict TypeScript: **PASS**
-- Vitest: **PASS**
-- optimized Next.js production build: **PASS**
+Live production verification on deployment `dpl_Hf3g7pzhCto1LspvNFQU9ppCH7zZ` confirmed:
 
-This is code/CI verification only.
+- production deployment: **READY**;
+- `/api/health`: HTTP 200, OAuth configured and database configured;
+- `/api/readiness`: HTTP 200, environment/database/migrations all true, encryption schema v1;
+- production migrations through `0005_managed_file_encryption.sql`: **applied/verified by readiness schema checks**;
+- managed Google OAuth start: OpenID identity scopes + `drive.file` + `drive.appdata`, offline access, PKCE S256 and exact production callback;
+- production security headers present;
+- no grouped runtime errors in the inspected five-minute window after the successful deployment.
+
+The rollback-only diagnostic used to find the migration bug left no test table behind and was never merged into production.
 
 ## Encryption trust model
 
@@ -68,37 +61,38 @@ Do **not** call the current design zero-knowledge or provider-only E2EE. The aut
 
 ## NOT yet proven with real production credentials
 
-- Hosted TLS PostgreSQL + all migrations through `0005`.
-- Complete production environment variables satisfying hardened validation.
-- Deployed `/privacy` and `/terms` on the final production origin.
-- Deployed preflight/readiness with encryption schema.
-- Real Google OAuth callback.
-- Real encrypted managed upload and opaque provider-object inspection.
-- Download/decrypt SHA-256 equality with source.
-- Auto/manual Google destination round trips.
-- Interrupted/resumed encrypted upload.
-- Real integrity, recovery/decrypt, sharing and cron tests.
-- Desktop/mobile deployed smoke test.
+- successful user-completed Google OAuth callback/session;
+- real encrypted managed upload with opaque provider object inspection;
+- download/decrypt SHA-256 equality with the source file;
+- Auto-selected Google-account round trip;
+- explicitly selected Google-account round trip;
+- interrupted/resumed encrypted upload;
+- real integrity scan;
+- recovery snapshot + restore + decrypt rehearsal;
+- real encrypted sharing controls;
+- authenticated maintenance/cron behavior in the live environment;
+- desktop/mobile authenticated smoke test;
 - Full Drive sync if broader mode is enabled.
 
 ## Next actions — do these in order
 
-1. Provision/configure production TLS PostgreSQL and run migrations through `0005_managed_file_encryption.sql`.
-2. Configure production application/OAuth secrets using external secret storage only and satisfy the hardened env validator.
-3. Deploy the candidate and verify `/privacy`, `/terms`, `/api/health` and `/api/readiness`.
-4. Run `pnpm production:preflight https://meshly.cassielae.me --report=.meshly/preflight-report.json` (or the actual final production origin).
-5. Run the required real encrypted Google Auto/manual upload/download tests and inspect the opaque ciphertext object.
-6. Test encrypted resume, integrity, recovery, sharing, cron and desktop/mobile smoke flows.
-7. Run release verification and checkpoint `production_verified` only after all required live tests genuinely pass.
-8. Continue provider adapters (TeraBox, Dropbox, MEGA) only after the production Google path is proven.
+1. Complete one real Google sign-in through `https://meshly.cassielae.me` and confirm the callback reaches the Meshly workspace.
+2. Upload a small deterministic test file using **Auto choose**, download it, and compare plaintext SHA-256.
+3. Inspect the corresponding Google object and confirm opaque managed naming/ciphertext rather than original plaintext content/name.
+4. Repeat the round trip with an explicitly selected healthy Google account.
+5. Test encrypted resume, integrity, recovery/decrypt, sharing, cron and desktop/mobile authenticated flows.
+6. Run release verification and checkpoint `production_verified` only after all required live tests genuinely pass.
+7. Continue TeraBox/Dropbox/MEGA adapters only after the Google production path is proven.
 
 ## Invariants
 
 - Every new Meshly-managed file uses encryption v1.
 - Google managed files stay whole in one Google account.
+- Production migrations are transactional, checksum-verified and production-only during Vercel builds.
+- Preview/local/CI builds do not mutate the production database.
 - Purpose-specific production secrets are independent.
 - Never place production secrets in repository/checkpoint files/issues/screenshots/chat.
 - Do not claim production encryption verification before a real provider round trip succeeds.
 - Current encryption is backend-trusted, not zero-knowledge.
 - Provider limits and terms must be respected.
-- Repository state newer than this checkpoint wins.
+- Repository/deployment state newer than this checkpoint wins.
