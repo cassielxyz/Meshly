@@ -2,8 +2,12 @@ import { createHash, randomBytes } from "node:crypto";
 
 export type GoogleMode = "managed" | "full";
 const APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
-const MANAGED_SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive.file", APPDATA_SCOPE];
-const FULL_SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/drive", APPDATA_SCOPE];
+const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const MANAGED_SCOPES = ["openid", "email", "profile", DRIVE_FILE_SCOPE, APPDATA_SCOPE];
+// Full Drive mode needs read access to pre-existing files, while writes can stay scoped
+// to files Meshly creates or the user explicitly shares with Meshly.
+const FULL_SCOPES = ["openid", "email", "profile", DRIVE_READ_SCOPE, DRIVE_FILE_SCOPE, APPDATA_SCOPE];
 
 function config() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
