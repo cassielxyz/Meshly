@@ -30,28 +30,37 @@ export type ProviderUploadProgress = {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+function requestBody(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
 
 async function sendEncryptedSlice(objectId: string, body: Uint8Array, offset: number, maxBytes: number) {
   if (!body.byteLength || body.byteLength > maxBytes) throw new Error("Invalid provider proxy slice size");
   let attempt = 0;
   for (;;) {
+    let response: Response;
     try {
-      const response = await fetch(`/api/provider-uploads/${encodeURIComponent(objectId)}/part?offset=${offset}`, {
+      response = await fetch(`/api/provider-uploads/${encodeURIComponent(objectId)}/part?offset=${offset}`, {
         method: "PUT",
         headers: { "content-type": "application/octet-stream" },
-        body,
+        body: requestBody(body),
       });
-      const result = await response.json().catch(() => ({})) as { acceptedOffset?: number; expectedOffset?: number; error?: string };
-      if (response.ok && Number.isSafeInteger(result.acceptedOffset)) return result.acceptedOffset!;
-      if (response.status === 409 && Number.isSafeInteger(result.expectedOffset)) return result.expectedOffset!;
-      if (response.status < 500 && response.status !== 408 && response.status !== 425 && response.status !== 429) {
-        throw new Error(result.error ?? `Provider upload failed (${response.status})`);
-      }
     } catch (error) {
       if (attempt >= 5) throw error;
+      attempt++;
+      await sleep(Math.min(8000, 400 * 2 ** attempt));
+      continue;
+    }
+    const result = await response.json().catch(() => ({})) as { acceptedOffset?: number; expectedOffset?: number; error?: string };
+    if (response.ok && Number.isSafeInteger(result.acceptedOffset)) return result.acceptedOffset!;
+    if (response.status === 409 && Number.isSafeInteger(result.expectedOffset)) return result.expectedOffset!;
+    if (response.status < 500 && response.status !== 408 && response.status !== 425 && response.status !== 429) {
+      throw new Error(result.error ?? `Provider upload failed (${response.status})`);
     }
     attempt++;
-    if (attempt > 5) throw new Error("Provider upload could not be resumed");
+    if (attempt > 5) throw new Error(result.error ?? "Provider upload could not be resumed");
     await sleep(Math.min(8000, 400 * 2 ** attempt));
   }
 }
