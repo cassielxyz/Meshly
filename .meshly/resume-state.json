@@ -4,7 +4,7 @@
   "repository": "cassielxyz/Meshly",
   "activeBranch": "work/production-live-verification",
   "activePullRequest": 7,
-  "resumeStatus": "blocked_on_external_environment_configuration",
+  "resumeStatus": "blocked_on_production_database_migrations",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-preflight-hardening.md",
   "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
   "lastVerifiedCiRun": "36269498896",
@@ -23,17 +23,17 @@
     "inspect_current_main_and_active_branch_heads",
     "inspect_latest_production_deployment",
     "rerun_health_and_readiness_before_assuming_the_blocker_is_unchanged",
-    "if_token_encryption_key_is_still_missing_wait_for_external_secret_configuration",
-    "after_redeploy_rerun_readiness",
+    "if_migrations_false_wait_for_or_help_run_production_pnpm_db_migrate_without_exposing_database_url",
+    "after_migration_rerun_readiness_and_require_all_three_readiness_gates_true",
     "continue_required_real_encrypted_google_integration_tests_when_readiness_is_green",
     "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Add the production TOKEN_ENCRYPTION_KEY outside chat/repository, redeploy, then rerun /api/readiness and continue from the next reported blocker.",
+  "exactNextAction": "Run pnpm db:migrate against the production DATABASE_URL outside chat, then rerun /api/readiness; if green continue real Google OAuth and encrypted round-trip verification.",
   "notes": [
-    "root_privacy_terms_and_health_are_live",
-    "managed_google_oauth_start_scopes_offline_pkce_and_callback_have_been_live_probed",
-    "readiness_currently_returns_503_missing_TOKEN_ENCRYPTION_KEY",
-    "database_migrations_are_not_yet_proven_because_environment_validation_fails_first",
+    "production_token_encryption_key_is_now_accepted",
+    "readiness_environment_true",
+    "readiness_database_true",
+    "readiness_migrations_false",
     "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
