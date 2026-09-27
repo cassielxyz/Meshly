@@ -1,8 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { providerAccounts, providerObjects } from "@/db/provider-schema";
 import { chunks, linkedAccounts, logicalFiles } from "@/db/schema";
 import { downloadDriveFile, exportDriveFile } from "@/lib/google/drive";
 import { refreshGoogleAccessToken } from "@/lib/google/oauth";
+import { downloadDropboxFile, getDropboxAccessToken } from "@/lib/providers/dropbox";
 import { decryptSecret } from "@/lib/security/crypto";
 import { unwrapFileKey } from "@/lib/security/file-encryption";
 import { AES_GCM_TAG_BYTES, frameLayout, framesForPlainRange } from "@/lib/storage/encryption-format";
@@ -59,20 +61,23 @@ async function streamExternal(file: typeof logicalFiles.$inferSelect, rangeHeade
   return new Response(response.body, { status: response.status, headers });
 }
 
-async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, rangeHeader: string | null, disposition: "attachment" | "inline") {
+type CipherRangeFetcher = (start: number, end: number) => Promise<Response>;
+
+function streamEncryptedFrames(
+  file: typeof logicalFiles.$inferSelect,
+  rangeHeader: string | null,
+  disposition: "attachment" | "inline",
+  fetchCipherRange: CipherRangeFetcher,
+  provider: string,
+) {
   const requested = rangeOf(rangeHeader, file.size);
   if (!requested) return new Response("Invalid range", { status: 416, headers: { "Content-Range": `bytes */${file.size}` } });
   if (requested.end < requested.start) return new Response(null, { status: 200 });
   if (!file.wrappedFileKey || !file.encryptionNoncePrefix || !file.encryptionFramePlainBytes) return new Response("Encrypted file metadata is incomplete", { status: 409 });
-  const framePlainBytes = file.encryptionFramePlainBytes;
-  const db = getDb();
-  const rows = await db.select({ chunk: chunks, account: linkedAccounts }).from(chunks).innerJoin(linkedAccounts, eq(chunks.accountId, linkedAccounts.id)).where(eq(chunks.fileId, file.id)).orderBy(asc(chunks.part));
-  if (rows.length !== 1 || !rows[0]!.chunk.driveFileId || rows[0]!.chunk.status !== "ready") return new Response("Encrypted file is incomplete", { status: 409 });
-  const { chunk, account } = rows[0]!;
-  const access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted));
   const rawKey = unwrapFileKey(file.wrappedFileKey, file.id);
   const noncePrefix = Buffer.from(file.encryptionNoncePrefix, "base64url");
   if (noncePrefix.length !== 8) return new Response("Encrypted file nonce metadata is invalid", { status: 409 });
+  const framePlainBytes = file.encryptionFramePlainBytes;
   const frameIndices = framesForPlainRange(file.size, requested.start, requested.end, framePlainBytes);
   let frameCursor = 0;
   const stream = new ReadableStream<Uint8Array>({
@@ -81,10 +86,10 @@ async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, ra
         if (frameCursor >= frameIndices.length) { controller.close(); return; }
         const index = frameIndices[frameCursor++]!;
         const layout = frameLayout(file.size, index, framePlainBytes, AES_GCM_TAG_BYTES);
-        const response = await downloadDriveFile(access, chunk.driveFileId!, `bytes=${layout.cipherOffset}-${layout.cipherOffset + layout.cipherSize - 1}`);
-        if (!response.ok) throw new Error(`Encrypted Drive frame download failed (${response.status})`);
+        const response = await fetchCipherRange(layout.cipherOffset, layout.cipherOffset + layout.cipherSize - 1);
+        if (!response.ok) throw new Error(`Encrypted ${provider} frame download failed (${response.status})`);
         const encrypted = new Uint8Array(await response.arrayBuffer());
-        if (encrypted.byteLength !== layout.cipherSize) throw new Error("Encrypted Drive frame length mismatch");
+        if (encrypted.byteLength !== layout.cipherSize) throw new Error(`Encrypted ${provider} frame length mismatch`);
         const plain = decryptManagedFrame({ rawKey, noncePrefix, fileId: file.id, fileSize: file.size, frameIndex: index, ciphertext: encrypted });
         if (plain.byteLength !== layout.plainSize) throw new Error("Decrypted frame length mismatch");
         const wantedStart = Math.max(requested.start, layout.plainOffset) - layout.plainOffset;
@@ -94,9 +99,43 @@ async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, ra
     },
   });
   const length = requested.end - requested.start + 1;
-  const headers = new Headers({ "Content-Type": file.mimeType || "application/octet-stream", "Content-Length": String(length), "Accept-Ranges": "bytes", "Cache-Control": "private, no-store", "Content-Disposition": dispositionHeader(disposition, file.name), "X-Meshly-Encryption": "v1" });
+  const headers = new Headers({
+    "Content-Type": file.mimeType || "application/octet-stream",
+    "Content-Length": String(length),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, no-store",
+    "Content-Disposition": dispositionHeader(disposition, file.name),
+    "X-Meshly-Encryption": "v1",
+    "X-Meshly-Provider": provider,
+  });
   if (requested.partial) headers.set("Content-Range", `bytes ${requested.start}-${requested.end}/${file.size}`);
   return new Response(stream, { status: requested.partial ? 206 : 200, headers });
+}
+
+async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, rangeHeader: string | null, disposition: "attachment" | "inline") {
+  const db = getDb();
+  const providerRow = (await db.select({ object: providerObjects, account: providerAccounts })
+    .from(providerObjects)
+    .innerJoin(providerAccounts, eq(providerObjects.providerAccountId, providerAccounts.id))
+    .where(eq(providerObjects.fileId, file.id))
+    .limit(1))[0];
+
+  if (providerRow) {
+    const { object, account } = providerRow;
+    if (object.status !== "ready" || !object.remotePath) return new Response("Encrypted provider object is incomplete", { status: 409 });
+    if (object.provider !== account.provider) return new Response("Provider object binding is invalid", { status: 409 });
+    if (object.provider === "dropbox") {
+      const accessToken = await getDropboxAccessToken(account);
+      return streamEncryptedFrames(file, rangeHeader, disposition, (start, end) => downloadDropboxFile(accessToken, object.remotePath!, `bytes=${start}-${end}`), "dropbox");
+    }
+    return new Response("Encrypted provider download is not implemented", { status: 501 });
+  }
+
+  const rows = await db.select({ chunk: chunks, account: linkedAccounts }).from(chunks).innerJoin(linkedAccounts, eq(chunks.accountId, linkedAccounts.id)).where(eq(chunks.fileId, file.id)).orderBy(asc(chunks.part));
+  if (rows.length !== 1 || !rows[0]!.chunk.driveFileId || rows[0]!.chunk.status !== "ready") return new Response("Encrypted file is incomplete", { status: 409 });
+  const { chunk, account } = rows[0]!;
+  const access = await refreshGoogleAccessToken(decryptSecret(account.refreshTokenEncrypted));
+  return streamEncryptedFrames(file, rangeHeader, disposition, (start, end) => downloadDriveFile(access, chunk.driveFileId!, `bytes=${start}-${end}`), "google-drive");
 }
 
 async function streamLegacyManaged(file: typeof logicalFiles.$inferSelect, rangeHeader: string | null, disposition: "attachment" | "inline") {
