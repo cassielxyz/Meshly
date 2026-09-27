@@ -19,6 +19,7 @@ type ProviderSummary = {
   configuration: {
     dropboxManagedUploads?: boolean;
     teraboxManagedUploads?: boolean;
+    teraboxLargeWorker?: boolean;
   };
 };
 
@@ -134,16 +135,19 @@ export function ProviderUploadPanel() {
 
         {activeAccounts.length > 0 ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {activeAccounts.map((account) => (
-              <button key={account.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] p-4 text-left transition hover:bg-[var(--surface)]" onClick={() => choose(account)}>
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--blue-soft)] text-[var(--blue)]"><CloudUpload size={19}/></div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold">Upload encrypted file to {account.provider === "dropbox" ? "Dropbox" : "TeraBox"}</div>
-                  <div className="truncate text-xs text-[var(--muted)]">{account.name || account.email || account.externalAccountId}</div>
-                  {account.provider === "terabox" && <div className="mt-1 text-[11px] text-[var(--muted)]">Current serverless path: small files only; large-file worker remains gated.</div>}
-                </div>
-              </button>
-            ))}
+            {activeAccounts.map((account) => {
+              const teraLargeReady = account.provider === "terabox" && summary?.configuration.teraboxLargeWorker === true;
+              return (
+                <button key={account.id} className="flex items-center gap-3 rounded-2xl border border-[var(--border)] p-4 text-left transition hover:bg-[var(--surface)]" onClick={() => choose(account)}>
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--blue-soft)] text-[var(--blue)]"><CloudUpload size={19}/></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">Upload encrypted file to {account.provider === "dropbox" ? "Dropbox" : "TeraBox"}</div>
+                    <div className="truncate text-xs text-[var(--muted)]">{account.name || account.email || account.externalAccountId}</div>
+                    {account.provider === "terabox" && <div className="mt-1 text-[11px] text-[var(--muted)]">{teraLargeReady ? "Small-file path + dedicated large-file worker enabled." : "Small-file path enabled; large files remain fail-closed until the worker gate is enabled."}</div>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div className="mt-4 rounded-2xl bg-[var(--surface-strong)] p-4 text-sm text-[var(--muted)]">
