@@ -44,20 +44,34 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const md5 = createHash("md5").update(raw).digest("hex");
 
-    const existing = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false).catch(() => null);
-    if (existing?.metadata && Number(existing.metadata.size) === row.object.physicalSize) {
+    async function markUploaded(remote: { fs_id: number | string; size: number; md5?: string | null }, recoveredExistingObject = false) {
+      if (Number(remote.size) !== row.object.physicalSize) return false;
+      if (remote.md5 && remote.md5.toLowerCase() !== md5.toLowerCase()) return false;
       await db.update(providerObjects).set({
-        remoteId: String(existing.metadata.fs_id),
+        remoteId: String(remote.fs_id),
         uploadedBytes: row.object.physicalSize,
         status: "uploaded",
-        metadata: { ...row.object.metadata, blockMd5: [md5], remoteMd5: existing.metadata.md5 ?? null, recoveredExistingObject: true },
+        metadata: { ...row.object.metadata, blockMd5: [md5], remoteMd5: remote.md5 ?? null, recoveredExistingObject },
         updatedAt: new Date(),
       }).where(eq(providerObjects.id, row.object.id));
+      return true;
+    }
+
+    const existing = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false).catch(() => null);
+    if (existing?.metadata && await markUploaded(existing.metadata, true)) {
       return NextResponse.json({ ok: true, uploadedBytes: row.object.physicalSize, recoveredExistingObject: true });
     }
 
     const precreated = await precreateTeraBoxUpload(row.account, row.object.remotePath, [md5]);
+    if (precreated.return_type === 2) {
+      const completed = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false).catch(() => null);
+      if (completed?.metadata && await markUploaded(completed.metadata, true)) {
+        return NextResponse.json({ ok: true, uploadedBytes: row.object.physicalSize, recoveredExistingObject: true, precreateCompleted: true });
+      }
+      return NextResponse.json({ error: "terabox_precreate_completed_object_not_verifiable" }, { status: 409 });
+    }
     if (!precreated.uploadid) return NextResponse.json({ error: "terabox_upload_id_missing" }, { status: 502 });
+
     const shard = await uploadTeraBoxShard(row.account, { path: row.object.remotePath, uploadId: precreated.uploadid, part: 0, bytes: raw });
     if (shard.md5?.toLowerCase() !== md5.toLowerCase()) {
       return NextResponse.json({ error: "terabox_shard_md5_mismatch" }, { status: 409 });
@@ -66,6 +80,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const verified = await getTeraBoxFileMetadata(row.account, created.path ?? row.object.remotePath, false);
     if (!verified.metadata || Number(verified.metadata.size) !== row.object.physicalSize) {
       return NextResponse.json({ error: "terabox_remote_object_verification_failed" }, { status: 409 });
+    }
+    if (verified.metadata.md5 && verified.metadata.md5.toLowerCase() !== md5.toLowerCase()) {
+      return NextResponse.json({ error: "terabox_remote_object_md5_mismatch" }, { status: 409 });
     }
 
     await db.update(providerObjects).set({
