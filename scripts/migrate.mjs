@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import postgres from "postgres";
 
@@ -10,12 +10,25 @@ if (!databaseUrl) {
 }
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+const diagnosticPath = process.env.MESHLY_MIGRATION_DIAGNOSTIC_PATH;
 const sql = postgres(databaseUrl, {
   max: 1,
   prepare: false,
   ssl: isProduction ? "require" : undefined,
 });
 const migrationsDir = path.join(process.cwd(), "db", "migrations");
+let stage = "bootstrap";
+
+function sanitizeMessage(value) {
+  const text = String(value ?? "Unknown migration error").slice(0, 500);
+  return databaseUrl ? text.split(databaseUrl).join("[redacted-database-url]") : text;
+}
+
+async function writeDiagnostic(payload) {
+  if (!diagnosticPath) return;
+  await mkdir(path.dirname(diagnosticPath), { recursive: true });
+  await writeFile(diagnosticPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+}
 
 try {
   await sql.unsafe(`
@@ -28,6 +41,7 @@ try {
 
   const files = (await readdir(migrationsDir)).filter((name) => name.endsWith(".sql")).sort();
   for (const name of files) {
+    stage = name;
     const source = await readFile(path.join(migrationsDir, name), "utf8");
     const checksum = createHash("sha256").update(source).digest("hex");
     const [existing] = await sql`SELECT checksum FROM _meshly_migrations WHERE name = ${name}`;
@@ -42,7 +56,22 @@ try {
     });
     console.log(`applied ${name}`);
   }
+
+  await writeDiagnostic({ ok: true, stage: "complete" });
   console.log("Meshly database is up to date.");
+} catch (error) {
+  const cause = error?.cause ?? error;
+  const diagnostic = {
+    ok: false,
+    stage,
+    code: cause?.code ?? error?.code ?? null,
+    severity: cause?.severity ?? error?.severity ?? null,
+    routine: cause?.routine ?? error?.routine ?? null,
+    message: sanitizeMessage(cause?.message ?? error?.message),
+  };
+  await writeDiagnostic(diagnostic);
+  console.error(`Meshly migration failed at ${stage}: ${diagnostic.code ?? "unknown"} ${diagnostic.message}`);
+  process.exitCode = 1;
 } finally {
   await sql.end();
 }
