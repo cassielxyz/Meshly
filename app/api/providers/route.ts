@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { providerAccounts } from "@/db/provider-schema";
 import { isDropboxConfigured, isDropboxManagedUploadsEnabled, refreshDropboxAccount } from "@/lib/providers/dropbox";
-import { getTeraBoxAuthorizationUrl, isTeraBoxConfigured, refreshTeraBoxAccount } from "@/lib/providers/terabox";
+import { getTeraBoxAuthorizationUrl, isTeraBoxConfigured, isTeraBoxManagedUploadsEnabled, refreshTeraBoxAccount } from "@/lib/providers/terabox";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
 
 function safe(account: typeof providerAccounts.$inferSelect) {
@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
         dropbox: dropboxConfigured,
         dropboxManagedUploads: isDropboxManagedUploadsEnabled(),
         terabox: teraboxConfigured,
+        teraboxManagedUploads: isTeraBoxManagedUploadsEnabled(),
         mega: false,
       },
       teraboxAuthorizationUrl: teraboxConfigured ? getTeraBoxAuthorizationUrl() : null,
