@@ -4,11 +4,14 @@
 
 ## Do this next
 
-Production currently fails readiness only at the first strict environment gate: `TOKEN_ENCRYPTION_KEY` is missing.
+Production environment validation and database connectivity now pass. `/api/readiness` is blocked only by database migration state:
 
-1. In Vercel, add a **Production** `TOKEN_ENCRYPTION_KEY` generated locally as exactly 32 random bytes encoded in Base64.
-2. Redeploy Meshly production.
-3. Re-check `https://meshly.cassielae.me/api/readiness`.
-4. Continue with whichever next blocker readiness reports; if it returns HTTP 200, proceed to real Google OAuth and encrypted Auto/manual round-trip tests.
+```json
+{"environment":true,"database":true,"migrations":false}
+```
 
-Do not paste the key into chat, issues, screenshots or repository files.
+1. Run `pnpm db:migrate` against the production `DATABASE_URL` in a trusted local/Codespaces/provider environment.
+2. Re-check `https://meshly.cassielae.me/api/readiness`.
+3. When readiness returns HTTP 200, continue with real Google OAuth and encrypted Auto/manual upload/download verification.
+
+Do not paste `DATABASE_URL` or any production secret into chat, issues or repository files.
