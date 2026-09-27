@@ -20,11 +20,15 @@ export async function refreshAccountQuota(account: Account) {
     const about = await getDriveAbout(access);
     const quotaLimit = safeBytes(about.storageQuota?.limit);
     const quotaUsage = safeBytes(about.storageQuota?.usage);
+    const quotaUsageInDrive = safeBytes(about.storageQuota?.usageInDrive);
+    const quotaUsageInDriveTrash = safeBytes(about.storageQuota?.usageInDriveTrash);
     const refreshedAt = new Date();
 
     await db.update(linkedAccounts).set({
       quotaLimit,
       quotaUsage,
+      quotaUsageInDrive,
+      quotaUsageInDriveTrash,
       status: "healthy",
       updatedAt: refreshedAt,
     }).where(eq(linkedAccounts.id, account.id));
@@ -38,13 +42,7 @@ export async function refreshAccountQuota(account: Account) {
       set: { lastQuotaRefresh: refreshedAt, lastError: null, updatedAt: refreshedAt },
     });
 
-    return {
-      ok: true as const,
-      quotaLimit,
-      quotaUsage,
-      driveUsage: safeBytes(about.storageQuota?.usageInDrive),
-      driveTrashUsage: safeBytes(about.storageQuota?.usageInDriveTrash),
-    };
+    return { ok: true as const, quotaLimit, quotaUsage, quotaUsageInDrive, quotaUsageInDriveTrash };
   } catch (error) {
     const message = error instanceof Error ? error.message : "quota refresh failed";
     const status = /\((400|401)\)/.test(message) ? "needs_reauth" : "error";
