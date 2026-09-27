@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Activity, Cloud, Download, Files, Folder, RefreshCw, Share2, ShieldCheck, UploadCloud } from "lucide-react";
 
 type Analytics = {
@@ -24,7 +24,7 @@ export function AnalyticsView() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     const response = await fetch("/api/analytics", { cache: "no-store" });
     if (!response.ok) {
@@ -35,9 +35,12 @@ export function AnalyticsView() {
     setData(await response.json() as Analytics);
     setError("");
     setLoading(false);
-  }
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const initial = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(initial);
+  }, [load]);
 
   if (loading && !data) return <div className="p-6 text-sm text-[var(--muted)]">Loading analytics…</div>;
   if (error && !data) return <div className="p-6"><div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error} <button className="font-semibold underline" onClick={() => void load()}>Retry</button></div></div>;
