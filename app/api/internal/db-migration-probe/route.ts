@@ -6,6 +6,18 @@ export const dynamic = "force-dynamic";
 
 const ROLLBACK_SENTINEL = "__MESHLY_MIGRATION_PROBE_ROLLBACK__";
 
+const migration0001 = `
+CREATE TABLE IF NOT EXISTS users (id text PRIMARY KEY,email text NOT NULL UNIQUE,name text,avatar_url text,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS linked_accounts (id text PRIMARY KEY,user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,google_subject text NOT NULL UNIQUE,email text NOT NULL,name text,avatar_url text,mode text NOT NULL DEFAULT 'managed',refresh_token_encrypted text NOT NULL,storage_folder_id text,quota_limit bigint NOT NULL DEFAULT 0,quota_usage bigint NOT NULL DEFAULT 0,priority integer NOT NULL DEFAULT 100,status text NOT NULL DEFAULT 'healthy',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS linked_accounts_user_idx ON linked_accounts(user_id);
+CREATE TABLE IF NOT EXISTS logical_files (id text PRIMARY KEY,user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,parent_id text,name text NOT NULL,mime_type text NOT NULL,size bigint NOT NULL,sha256 text,status text NOT NULL DEFAULT 'uploading',starred integer NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS logical_files_user_parent_idx ON logical_files(user_id,parent_id);
+CREATE TABLE IF NOT EXISTS chunks (id text PRIMARY KEY,file_id text NOT NULL REFERENCES logical_files(id) ON DELETE CASCADE,account_id text NOT NULL REFERENCES linked_accounts(id) ON DELETE RESTRICT,part integer NOT NULL,offset bigint NOT NULL,size bigint NOT NULL,physical_name text NOT NULL,drive_file_id text,sha256 text,status text NOT NULL DEFAULT 'pending',created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(file_id,part));
+CREATE INDEX IF NOT EXISTS chunks_account_idx ON chunks(account_id);
+CREATE TABLE IF NOT EXISTS activities (id text PRIMARY KEY,user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind text NOT NULL,subject_id text,metadata jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS activities_user_idx ON activities(user_id,created_at DESC);
+`;
+
 function safeError(error: unknown) {
   const candidate = (error && typeof error === "object" ? error : {}) as Record<string, unknown>;
   const cause = candidate.cause && typeof candidate.cause === "object" ? candidate.cause as Record<string, unknown> : candidate;
@@ -13,6 +25,7 @@ function safeError(error: unknown) {
     code: typeof cause.code === "string" ? cause.code : null,
     severity: typeof cause.severity === "string" ? cause.severity : null,
     routine: typeof cause.routine === "string" ? cause.routine : null,
+    position: typeof cause.position === "string" ? cause.position : null,
     message: typeof cause.message === "string" ? cause.message.slice(0, 240) : "Database probe failed",
   };
 }
@@ -34,16 +47,17 @@ export async function GET() {
       can_create_schema: boolean;
       migration_table_exists: boolean;
       users_table_exists: boolean;
+      migration_0001_recorded: boolean;
     }[]>`
       select
         current_schema() as schema_name,
         has_schema_privilege(current_user, current_schema(), 'CREATE') as can_create_schema,
         to_regclass('public._meshly_migrations') is not null as migration_table_exists,
-        to_regclass('public.users') is not null as users_table_exists
+        to_regclass('public.users') is not null as users_table_exists,
+        case when to_regclass('public._meshly_migrations') is null then false else exists(select 1 from _meshly_migrations where name = '0001_meshly.sql') end as migration_0001_recorded
     `;
 
-    let ddlTransaction = { ok: false as boolean, rolledBack: false, error: null as ReturnType<typeof safeError> | null };
-
+    const ddlTransaction = { ok: false, rolledBack: false, error: null as ReturnType<typeof safeError> | null };
     try {
       await sql.begin(async (tx) => {
         await tx.unsafe(`CREATE TABLE public.${tableName} (id text PRIMARY KEY, value text NOT NULL)`);
@@ -52,11 +66,8 @@ export async function GET() {
         throw new Error(ROLLBACK_SENTINEL);
       });
     } catch (error) {
-      if (error instanceof Error && error.message === ROLLBACK_SENTINEL) {
-        ddlTransaction.ok = true;
-      } else {
-        ddlTransaction.error = safeError(error);
-      }
+      if (error instanceof Error && error.message === ROLLBACK_SENTINEL) ddlTransaction.ok = true;
+      else ddlTransaction.error = safeError(error);
     }
 
     const [after] = await sql<{ exists_after_rollback: boolean }[]>`
@@ -64,21 +75,36 @@ export async function GET() {
     `;
     ddlTransaction.rolledBack = !after?.exists_after_rollback;
 
+    const migration0001Probe = { ok: false, rolledBack: false, error: null as ReturnType<typeof safeError> | null };
+    if (!info?.users_table_exists && !info?.migration_0001_recorded) {
+      try {
+        await sql.begin(async (tx) => {
+          await tx.unsafe(migration0001);
+          throw new Error(ROLLBACK_SENTINEL);
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message === ROLLBACK_SENTINEL) migration0001Probe.ok = true;
+        else migration0001Probe.error = safeError(error);
+      }
+      const [afterMigration] = await sql<{ exists_after_rollback: boolean }[]>`
+        select to_regclass('public.users') is not null as exists_after_rollback
+      `;
+      migration0001Probe.rolledBack = !afterMigration?.exists_after_rollback;
+    }
+
     return NextResponse.json({
-      ok: ddlTransaction.ok && ddlTransaction.rolledBack,
+      ok: ddlTransaction.ok && ddlTransaction.rolledBack && (migration0001Probe.ok || Boolean(info?.migration_0001_recorded)),
       databaseConfigured: true,
       schema: info?.schema_name ?? null,
       canCreateSchema: Boolean(info?.can_create_schema),
       migrationTableExists: Boolean(info?.migration_table_exists),
       usersTableExists: Boolean(info?.users_table_exists),
+      migration0001Recorded: Boolean(info?.migration_0001_recorded),
       ddlTransaction,
+      migration0001Probe,
     }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
-    return NextResponse.json({
-      ok: false,
-      databaseConfigured: true,
-      probeError: safeError(error),
-    }, { status: 503, headers: { "cache-control": "no-store" } });
+    return NextResponse.json({ ok: false, databaseConfigured: true, probeError: safeError(error) }, { status: 503, headers: { "cache-control": "no-store" } });
   } finally {
     await sql.end({ timeout: 2 });
   }
