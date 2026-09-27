@@ -101,7 +101,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const response = NextResponse.redirect(new URL("/accounts?connected=1", request.url));
+    const saved = (await db.select({ id: linkedAccounts.id }).from(linkedAccounts).where(and(
+      eq(linkedAccounts.userId, userId),
+      eq(linkedAccounts.googleSubject, profile.sub),
+    )).limit(1))[0];
+    const destination = new URL("/accounts", request.url);
+    destination.searchParams.set("connected", "1");
+    if (mode === "full" && saved) destination.searchParams.set("sync", saved.id);
+
+    const response = NextResponse.redirect(destination);
     response.cookies.set("meshly_session", await createSessionToken(userId), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
