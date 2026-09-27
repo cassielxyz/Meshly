@@ -77,7 +77,8 @@ export function AccountsView() {
   }, [load]);
 
   useEffect(() => {
-    void load(true);
+    const timer = window.setTimeout(() => { void load(true); }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   useEffect(() => {
@@ -88,7 +89,8 @@ export function AccountsView() {
     autoSyncStarted.current = true;
     params.delete("sync");
     window.history.replaceState({}, "", `${window.location.pathname}${params.size ? `?${params.toString()}` : ""}`);
-    void syncAccount(syncId, true);
+    const timer = window.setTimeout(() => { void syncAccount(syncId, true); }, 0);
+    return () => window.clearTimeout(timer);
   }, [syncAccount]);
 
   async function setUploads(id: string, enabled: boolean) {
@@ -151,7 +153,7 @@ export function AccountsView() {
             <article className="mesh-card p-5" key={account.id}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                  {account.avatarUrl ? <img className="h-11 w-11 rounded-full" src={account.avatarUrl} alt="" referrerPolicy="no-referrer" /> : <div className="grid h-11 w-11 place-items-center rounded-full bg-[var(--blue-soft)] font-semibold">{(account.name || account.email).charAt(0).toUpperCase()}</div>}
+                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[var(--blue-soft)] font-semibold">{(account.name || account.email).charAt(0).toUpperCase()}</div>
                   <div className="min-w-0">
                     <div className="truncate font-semibold">{account.name || account.email}</div>
                     <div className="truncate text-sm text-[var(--muted)]">{account.email}</div>
@@ -191,7 +193,7 @@ export function AccountsView() {
 
               {full && healthy && (
                 <div className="mt-4 flex items-start gap-3 rounded-2xl bg-[var(--surface-strong)] p-4 text-sm leading-6">
-                  <CheckCircle2 className="mt-0.5 shrink-0 text-[var(--green,#188038)]" size={18}/>
+                  <CheckCircle2 className="mt-0.5 shrink-0 text-[var(--blue)]" size={18}/>
                   <div>Existing Drive files can be indexed into Meshly. Meshly&apos;s own new managed uploads remain encrypted and stored with opaque provider object names.</div>
                 </div>
               )}
