@@ -7,62 +7,44 @@
 **Active branch:** `work/production-live-verification`  
 **Active PR:** `#7`  
 **Current main:** `eb755a886162194b08f40e275cc96b2d6d90c418`  
-**Last verified code milestone:** production preflight hardening (`bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`, CI `36269498896`)  
-**Checkpoint-only CI:** `36279720209` — PASS
+**Last verified code milestone:** production preflight hardening (`bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5`, CI `36269498896`)
 
 ## Active task
 
-Continue the real production verification phase from the deployed `main` build without storing credentials in Git or chat.
+Continue real production verification from the deployed `main` build without storing credentials in Git or chat.
 
 ## Live production probe already completed
 
-Production deployment for `main` commit `eb755a886162194b08f40e275cc96b2d6d90c418` is **READY** on `meshly.cassielae.me`.
+Verified on `https://meshly.cassielae.me`:
 
-Verified live without authentication:
-
-- `/` → HTTP 200; current multicloud/encrypted landing page is deployed.
-- `/privacy` → HTTP 200.
-- `/terms` → HTTP 200.
-- `/api/health` → HTTP 200 with `oauthConfigured: true` and `databaseConfigured: true`.
-- `/api/auth/google/start` → HTTP 307 to Google with:
-  - `openid`, `email`, `profile`;
-  - `drive.file`, `drive.appdata`;
-  - no full Drive scope in the managed flow;
-  - `access_type=offline`;
-  - PKCE S256;
-  - callback `https://meshly.cassielae.me/api/auth/google/callback`.
-- Production security headers are present on the deployed public surface, including CSP, HSTS, frame denial and `nosniff`.
-- Vercel reported no grouped runtime errors in the inspected 24-hour window.
+- `/`, `/privacy`, `/terms` → HTTP 200.
+- `/api/health` → HTTP 200 with OAuth/database configured.
+- managed Google OAuth start uses identity + `drive.file` + `drive.appdata`, offline access, PKCE S256 and the exact production callback.
+- production security headers are present.
+- `TOKEN_ENCRYPTION_KEY` is now accepted by strict environment validation after the user configured it and redeployed.
 
 ## Current blocker
 
-`GET https://meshly.cassielae.me/api/readiness` returns HTTP **503** because production environment validation reports:
+`GET /api/readiness` now returns HTTP **503** with:
 
-`missing: ["TOKEN_ENCRYPTION_KEY"]`
+```json
+{"ok":false,"service":"meshly","environment":true,"database":true,"migrations":false}
+```
 
-This is now the first blocking item. Database reachability/migrations are **not yet proven** by readiness because strict environment validation stops first.
+This proves the production environment and database connection are valid. The next blocker is database schema migration state.
 
-`TOKEN_ENCRYPTION_KEY` must remain the current hardened format: exactly 32 cryptographically random raw bytes encoded as canonical Base64. Do not place the value in this repository, issues, screenshots or chat.
+Meshly currently has migrations `0001` through `0005_managed_file_encryption.sql`, and `pnpm db:migrate` applies them transactionally while recording checksums in `_meshly_migrations`.
 
 ## Exact next action
 
-1. Add `TOKEN_ENCRYPTION_KEY` to the Meshly **Production** environment in Vercel using a locally generated 32-byte Base64 value.
-2. Redeploy production so the new environment value is loaded.
-3. Re-run `/api/readiness` immediately.
-4. If readiness advances to a database/migration failure, fix that next. If readiness is HTTP 200, continue to real Google sign-in and encrypted Auto/manual round-trip verification.
-
-Safe local generation examples (run outside chat):
-
-- `openssl rand -base64 32`
-- `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
-
-## Blockers outside code
-
-The connected Vercel tooling available to the agent can inspect deployments and runtime state but does not expose an environment-variable write action. Therefore the production key must be added through the user-controlled Vercel environment/secret UI or another authorized secret-management path.
+1. Run `pnpm db:migrate` against the same production `DATABASE_URL` used by Meshly. Do this through a trusted local/Codespaces environment or the database provider's secure console; do not paste the URL into chat.
+2. Re-run `https://meshly.cassielae.me/api/readiness`.
+3. Require HTTP 200 with `environment`, `database`, and `migrations` all true.
+4. Then continue real Google sign-in and encrypted Auto/manual upload/download SHA-256 verification.
 
 ## Invariants
 
-- Never request or store the actual production key in chat or repository files.
+- Never request or store production secrets in chat or repository files.
 - New Meshly-managed files remain encrypted before provider storage.
 - Google managed files remain whole-file-only in one Google account.
 - Current encryption is backend-trusted, not zero-knowledge.
