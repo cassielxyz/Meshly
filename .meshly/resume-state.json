@@ -2,11 +2,12 @@
   "schemaVersion": 1,
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
-  "activeBranch": "main",
-  "resumeStatus": "provider_correctness_foundation_deployed_waiting_for_live_user_provider_verification",
+  "activeBranch": "work/dropbox-encrypted-transfers",
+  "activePullRequest": 13,
+  "resumeStatus": "dropbox_encrypted_transfer_implementation_green_waiting_for_merge_and_live_provider_verification",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-provider-correctness-foundation.md",
-  "lastVerifiedRuntimeCommit": "46451951236f0e49132908dd35c471cdefdc3533",
-  "lastVerifiedCiRun": "36318726309",
+  "lastVerifiedRuntimeCommit": "ad2539abc9c9a22db25083b2f78e68a6b1c97e17",
+  "lastVerifiedCiRun": "36320647090",
   "deployedMainCommit": "46451951236f0e49132908dd35c471cdefdc3533",
   "verifiedProductionDeployment": "dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj",
   "requiredReads": [
@@ -20,23 +21,23 @@
     "docs/checkpoints/2026-09-27-provider-correctness-foundation.md"
   ],
   "resumeProcedure": [
-    "inspect_current_main_and_latest_production_deployment",
-    "rerun_readiness_and_require_provider_schema_v1",
-    "continue_from_user_show_existing_files_google_consent_result",
-    "verify_initial_full_drive_index_and_per_account_quota_accuracy",
-    "run_google_encrypted_auto_and_selected_account_round_trip_tests",
-    "configure_dropbox_terabox_provider_credentials_outside_chat_before_live_provider_tests",
-    "do_not_activate_non_google_encrypted_uploads_until_provider_specific_transfer_tests_pass",
-    "update_all_checkpoint_layers_after_the_next_verified_milestone"
+    "inspect_current_main_pr_13_and_latest_ci_before_changing_code",
+    "keep_dropbox_managed_upload_gate_off_until_real_provider_tests_pass",
+    "merge_pr_13_only_after_latest_ci_is_green",
+    "verify_production_migration_0007_and_provider_schema_v2_readiness_after_deploy",
+    "continue_terabox_encrypted_transfer_implementation_without_secrets",
+    "when_dropbox_credentials_exist_run_live_encrypted_round_trip_resume_integrity_delete_and_recovery_tests",
+    "separately_complete_user_google_existing_file_and_quota_verification",
+    "update_all_checkpoint_layers_after_each_verified_milestone"
   ],
-  "exactNextAction": "Have the signed-in user open https://meshly.cassielae.me/accounts, press Show existing files for the affected Google account, complete consent without sharing credentials, then verify the old Drive files and live quota values after the automatic initial index.",
+  "exactNextAction": "Verify CI for the latest PR #13 checkpoint commit, merge the activation-gated Dropbox transfer foundation if green, then verify production readiness reports providerSchema v2 while DROPBOX_MANAGED_UPLOADS_ENABLED remains off.",
   "notes": [
-    "production_readiness_http_200_environment_database_migrations_true_encryption_schema_v1_provider_schema_v1",
-    "main_commit_46451951236f0e49132908dd35c471cdefdc3533_and_ci_36318726309_are_verified",
-    "google_stale_quota_refresh_and_targeted_full_drive_initial_index_are_deployed_but_need_real_user_verification",
-    "dropbox_and_terabox_official_connection_quota_browse_foundations_are_deployed_but_not_live_verified_without_provider_app_credentials",
-    "non_google_encrypted_managed_upload_download_is_not_yet_claimed_complete",
-    "mega_requires_official_sdk_backed_worker",
+    "branch_ci_36320647090_passed_install_checkpoint_audit_lint_typecheck_test_build_before_checkpoint_only_updates",
+    "dropbox_encrypted_transfer_code_exists_but_is_not_live_provider_verified",
+    "dropbox_tokens_and_upload_session_ids_are_never_returned_to_the_browser",
+    "provider_object_recovery_manifest_version_3_excludes_provider_tokens_upload_session_ids_and_plaintext_file_keys",
+    "terabox_encrypted_transfer_remains_pending",
+    "google_existing_file_and_quota_browser_verification_remains_pending",
     "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
