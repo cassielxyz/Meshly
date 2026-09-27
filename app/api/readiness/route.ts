@@ -28,10 +28,11 @@ export async function GET() {
     await db.execute(sql`select account_id, change_page_token, last_recovery_snapshot from sync_state limit 0`);
     await db.execute(sql`select key, share_id, attempts, window_started_at from share_auth_attempts limit 0`);
     await db.execute(sql`select id, user_id, provider, external_account_id, quota_limit, quota_usage, status from provider_accounts limit 0`);
+    await db.execute(sql`select id, file_id, provider_account_id, provider, remote_id, remote_path, logical_size, physical_size, ciphertext_sha256, uploaded_bytes, status from provider_objects limit 0`);
   } catch (error) {
     console.error("Readiness migration/schema check failed", error);
     return NextResponse.json({ ok: false, service: "meshly", environment: true, database: true, migrations: false }, { status: 503, headers: { "cache-control": "no-store" } });
   }
 
-  return NextResponse.json({ ok: true, service: "meshly", environment: true, database: true, migrations: true, encryptionSchema: "v1", providerSchema: "v1", time: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json({ ok: true, service: "meshly", environment: true, database: true, migrations: true, encryptionSchema: "v1", providerSchema: "v2", time: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 }
