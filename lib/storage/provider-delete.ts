@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { providerAccounts, providerObjects } from "@/db/provider-schema";
 import { deleteDropboxPath, getDropboxAccessToken, tryGetDropboxMetadata } from "@/lib/providers/dropbox";
+import { deleteTeraBoxFile, getTeraBoxFileMetadata } from "@/lib/providers/terabox";
 
 export async function deleteManagedProviderObjects(userId: string, fileIds: string[]) {
   if (!fileIds.length) return { deleted: 0 };
@@ -24,6 +25,13 @@ export async function deleteManagedProviderObjects(userId: string, fileIds: stri
       }
       const remote = await tryGetDropboxMetadata(access, object.remotePath);
       if (remote) await deleteDropboxPath(access, object.remotePath);
+      deleted++;
+      continue;
+    }
+    if (object.provider === "terabox") {
+      if (!object.remotePath) continue;
+      const remote = await getTeraBoxFileMetadata(account, object.remotePath, false).catch(() => null);
+      if (remote?.metadata) await deleteTeraBoxFile(account, object.remotePath);
       deleted++;
       continue;
     }
