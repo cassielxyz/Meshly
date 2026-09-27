@@ -124,7 +124,7 @@ export function ProviderUploadPanel() {
           <div>
             <div className="flex items-center gap-2 font-semibold"><LockKeyhole size={18} className="text-[var(--blue)]"/>Encrypted managed uploads</div>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-              Provider upload controls only appear after that provider's production safety gate is enabled. Until then, connection, live quota and browsing stay usable without pretending encrypted writes are verified.
+              Provider upload controls only appear after that provider&apos;s production safety gate is enabled. Until then, connection, live quota and browsing stay usable without pretending encrypted writes are verified.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-full bg-[var(--surface-strong)] px-3 py-2 text-xs font-semibold">
