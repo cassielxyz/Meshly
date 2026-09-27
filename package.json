@@ -2,10 +2,11 @@
   "name": "meshly",
   "version": "1.0.0",
   "private": true,
-  "description": "One workspace for multiple Google Drive storage accounts.",
+  "description": "One workspace across connected cloud storage with encrypted managed files.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

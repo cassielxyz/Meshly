@@ -2,12 +2,13 @@
   "schemaVersion": 1,
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
-  "activeBranch": "work/production-preflight-hardening",
-  "activePullRequest": 6,
-  "resumeStatus": "verified_milestone_merge_pending",
+  "activeBranch": "work/production-live-verification",
+  "activePullRequest": 7,
+  "resumeStatus": "autonomous_production_migration_verification_pending",
   "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-preflight-hardening.md",
   "lastVerifiedRuntimeCommit": "bb079892b05cec46c1ac95dcb22fa4c6e01e8ab5",
   "lastVerifiedCiRun": "36269498896",
+  "deployedMainCommit": "eb755a886162194b08f40e275cc96b2d6d90c418",
   "requiredReads": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -20,16 +21,22 @@
   ],
   "resumeProcedure": [
     "inspect_current_main_and_active_branch_heads",
-    "inspect_pr_6_and_newest_ci",
-    "merge_pr_6_if_checkpoint_only_ci_is_green",
-    "continue_production_database_oauth_environment_and_deployment_configuration",
-    "run_production_preflight_and_required_live_encrypted_google_tests",
+    "inspect_pr_7_and_latest_ci",
+    "merge_pr_7_if_ci_is_green",
+    "inspect_production_vercel_build_logs_for_migration_execution",
+    "rerun_health_and_readiness",
+    "require_readiness_environment_database_and_migrations_true",
+    "continue_required_real_encrypted_google_integration_tests_when_readiness_is_green",
     "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Verify the checkpoint-only PR #6 CI; if green merge it, then continue external production configuration and live encrypted Google verification.",
+  "exactNextAction": "Verify the latest PR #7 CI, merge if green, then confirm the production Vercel build applies migrations 0001-0005 and rerun /api/readiness.",
   "notes": [
-    "repository_newer_than_checkpoint_files_wins",
-    "do_not_ask_the_user_to_reconstruct_lost_chat_context_when_repository_state_is_available",
-    "do_not_store_or_request_production_secrets_in_checkpoint_files_or_chat"
+    "production_token_encryption_key_is_accepted",
+    "readiness_environment_true",
+    "readiness_database_true",
+    "readiness_migrations_false_before_autonomous_migration_deploy",
+    "runtime_schema_error_users_relation_missing",
+    "production_only_vercel_migration_wrapper_is_implemented_on_pr_7",
+    "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
