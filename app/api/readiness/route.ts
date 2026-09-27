@@ -21,6 +21,7 @@ export async function GET() {
 
   try {
     await db.execute(sql`select id from users limit 0`);
+    await db.execute(sql`select id, quota_limit, quota_usage, quota_usage_in_drive, quota_usage_in_drive_trash from linked_accounts limit 0`);
     await db.execute(sql`select id, description, version, trashed_at, source_kind, source_account_id, source_drive_file_id, encryption_version, wrapped_file_key, encryption_nonce_prefix, encryption_frame_plain_bytes from logical_files limit 0`);
     await db.execute(sql`select id, account_id, drive_file_id, sha256, physical_size, ciphertext_sha256 from chunks limit 0`);
     await db.execute(sql`select user_id, preferences from user_settings limit 0`);
@@ -34,5 +35,5 @@ export async function GET() {
     return NextResponse.json({ ok: false, service: "meshly", environment: true, database: true, migrations: false }, { status: 503, headers: { "cache-control": "no-store" } });
   }
 
-  return NextResponse.json({ ok: true, service: "meshly", environment: true, database: true, migrations: true, encryptionSchema: "v1", providerSchema: "v2", time: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json({ ok: true, service: "meshly", environment: true, database: true, migrations: true, encryptionSchema: "v1", providerSchema: "v2", googleQuotaSchema: "v2", time: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 }
