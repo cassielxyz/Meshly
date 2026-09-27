@@ -4,58 +4,63 @@
 
 **Updated:** 2026-09-28  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `work/terabox-encrypted-transfers`  
-**Active PR:** `#14` — `feat: add activation-gated encrypted TeraBox transfers`  
-**Base main:** `9018491a83d9663dc09b32c9889c3133cac15e01`  
-**Last verified main CI:** `36321037829` on the PR #13 head before merge  
-**Verified production deployment before this branch:** `dpl_4yceJJbueyJS978P2sviWdPkQ2By`
+**Active branch:** `work/post-pr14-deploy-blocker`  
+**Merged functional PR:** `#14` — `feat: add activation-gated encrypted TeraBox transfers`  
+**Current main:** `a74596ae8a12c4c9025914112807162e9af17cce`  
+**PR #14 verified CI:** `36344842001` at head `528ed99e9f519005e6ed2b3e25c907d921edd417`  
+**Last verified production code:** `9018491a83d9663dc09b32c9889c3133cac15e01`  
+**Last verified production deployment:** `dpl_4yceJJbueyJS978P2sviWdPkQ2By`
 
 ## Active task
 
-Finish and verify PR #14: correct per-account Google quota categories and add a real, activation-gated encrypted TeraBox managed small-file path without claiming live provider verification. Keep `TERABOX_MANAGED_UPLOADS_ENABLED=false` until provider-specific live tests pass.
+PR #14 is merged and its exact head passed the full Meshly CI gate. Production deployment is currently blocked externally because Vercel reported `Deployment rate limited — retry in 24 hours` for main commit `a74596ae8a12c4c9025914112807162e9af17cce`.
 
-## Implemented on this branch — awaiting exact-head CI/live provider verification
+Do not falsely advance the canonical production runtime checkpoint. Production is still serving the previous verified main runtime until a new production deployment succeeds.
+
+## Merged and CI-verified in PR #14 — NOT yet production-deployed
 
 - migration `0008_google_quota_breakdown.sql` persists total Google usage, Drive usage and Drive-trash usage separately;
-- Google account refresh pulls quota data from the provider and `/api/storage` exposes the categories without treating total Google Account usage as Drive-only usage;
-- `/accounts` routes to the live account view with **Refresh live data**, targeted **Show existing files** and per-account values;
-- official TeraBox token/API/upload-domain primitives and app-space managed paths;
-- explicit `TERABOX_MANAGED_UPLOADS_ENABLED` safety gate;
-- encrypted TeraBox planning with Meshly encryption v1 and opaque `msh_*.bin` names;
-- current Vercel/serverless TeraBox path intentionally accepts only small encrypted objects (<= 3 MiB ciphertext / one Meshly frame); large files remain blocked pending a dedicated worker;
-- TeraBox precreate/shard/create flow with retry-safe detection of an already-created object;
-- remote size + available remote MD5 verification before a logical file becomes `ready`;
-- encrypted TeraBox download/decrypt, abort cleanup and permanent delete integration;
-- Other Clouds now has a user-facing encrypted-provider upload panel, but controls only appear when the corresponding provider safety gate is enabled;
-- unit coverage for the TeraBox managed path/gate/serverless ceiling.
+- Google quota refresh/API reporting no longer labels total Google Account usage as Drive-only usage;
+- `/accounts` routes to the live Google account view with **Refresh live data** and targeted **Show existing files**;
+- official TeraBox provider-domain transfer primitives and app-space managed paths;
+- explicit `TERABOX_MANAGED_UPLOADS_ENABLED` safety gate, default off;
+- encrypted TeraBox small-file planning/upload/remote verification/download/decrypt/abort/delete using Meshly encryption v1 and opaque `msh_*.bin` names;
+- retry-safe TeraBox precreate handling and remote size/available-MD5 verification before logical readiness;
+- Other Clouds includes encrypted Dropbox/TeraBox upload controls only when the corresponding provider safety gate is enabled;
+- Vitest alias configuration and TeraBox managed-transfer policy tests.
 
-## Verified baseline
+PR #14 head `528ed99e9f519005e6ed2b3e25c907d921edd417` passed CI run `36344842001`: frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, tests and production build. No unresolved review threads were present before merge.
 
-Main commit `9018491a83d9663dc09b32c9889c3133cac15e01` is deployed and READY. Live `/api/readiness` is HTTP 200 with environment/database/migrations true, `encryptionSchema: "v1"` and `providerSchema: "v2"`.
+## Verified production baseline
 
-PR #13 exact head CI `36321037829` passed install, checkpoint validation, audit, lint, typecheck, tests and build before that merge.
+Production deployment `dpl_4yceJJbueyJS978P2sviWdPkQ2By` for main commit `9018491a83d9663dc09b32c9889c3133cac15e01` remains the last verified runtime. Live readiness was HTTP 200 with environment/database/migrations true, `encryptionSchema: "v1"` and `providerSchema: "v2"`.
+
+## Current external blocker
+
+GitHub/Vercel status for merged main commit `a74596ae8a12c4c9025914112807162e9af17cce` reports: **Deployment rate limited — retry in 24 hours.** No new production deployment exists for that commit yet, so migration `0008` and `googleQuotaSchema: "v2"` are not live-verified.
+
+Do not attempt to bypass the hosting rate limit or claim production deployment success from preview builds.
 
 ## Still not verified / not active
 
-- PR #14 exact-head CI after the latest TeraBox integrity/UI/checkpoint changes;
-- migration `0008` in production and `googleQuotaSchema: "v2"` live readiness;
-- user-completed Google existing-file consent/indexing and exact quota comparison;
+- production deployment of merged PR #14 and migration `0008`;
+- live readiness with `googleQuotaSchema: "v2"`;
+- user-completed Google existing-file read consent/indexing and exact quota comparison;
 - real Google encrypted Auto/selected-account round trips;
-- real Dropbox encrypted production transfer verification; Dropbox gate remains off;
-- real TeraBox auth/quota/browse + encrypted production transfer verification; TeraBox gate remains off;
+- real Dropbox encrypted provider transfer verification; Dropbox gate remains off;
+- real TeraBox auth/quota/browse + encrypted transfer verification; TeraBox gate remains off;
 - TeraBox large-file worker;
 - MEGA official-SDK worker;
 - final integrity/recovery/share/cron/mobile-desktop production verification.
 
 ## Exact next action
 
-1. Wait for/check PR #14 CI at the newest head and fix any failing lint/type/test/build/checkpoint step.
-2. Review changed files and keep both non-Google managed-upload gates off.
-3. Merge PR #14 only after the exact head is green.
-4. Let the production migration runner apply `0008_google_quota_breakdown.sql`; verify production readiness returns HTTP 200 with `googleQuotaSchema: "v2"` and provider schema v2.
-5. In the authenticated browser, run **Show existing files**, verify older Drive files appear, then compare total/Drive/trash/free values after **Refresh live data**.
-6. Run Google encrypted Auto + selected-account SHA-256 round trips.
-7. Only after external provider credentials are configured outside chat, live-test Dropbox/TeraBox auth, quota, browse, encrypted transfer, ciphertext inspection, retry/abort, integrity, delete and recovery before enabling their gates.
+1. When the Vercel build-rate window clears, retry/redeploy main commit `a74596ae8a12c4c9025914112807162e9af17cce` without changing provider upload gates.
+2. Verify the resulting production deployment is READY and `/api/readiness` is HTTP 200 with `googleQuotaSchema: "v2"`, `providerSchema: "v2"`, migrations true and encryption schema v1.
+3. Then use the authenticated browser **Show existing files** flow, verify pre-existing Drive files appear, and compare refreshed total/Drive/trash/free values with Google.
+4. Run encrypted Google Auto + selected-account SHA-256 round trips.
+5. Configure Dropbox/TeraBox application credentials only outside chat/repository and run provider-specific auth/quota/browse/transfer/integrity/delete/recovery tests before enabling either gate.
+6. Continue non-secret-safe work on the dedicated TeraBox large-file worker and MEGA SDK worker without treating those as live capabilities.
 
 ## Invariants
 
