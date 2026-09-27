@@ -13,6 +13,8 @@ const sanitize = (account: typeof linkedAccounts.$inferSelect) => ({
   priority: account.priority,
   quotaLimit: account.quotaLimit,
   quotaUsage: account.quotaUsage,
+  quotaUsageInDrive: account.quotaUsageInDrive,
+  quotaUsageInDriveTrash: account.quotaUsageInDriveTrash,
   free: Math.max(0, account.quotaLimit - account.quotaUsage),
   createdAt: account.createdAt.toISOString(),
   updatedAt: account.updatedAt.toISOString(),
