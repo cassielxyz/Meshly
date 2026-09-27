@@ -44,8 +44,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const md5 = createHash("md5").update(raw).digest("hex");
 
-    const existing = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false);
-    if (existing.metadata && Number(existing.metadata.size) === row.object.physicalSize) {
+    const existing = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false).catch(() => null);
+    if (existing?.metadata && Number(existing.metadata.size) === row.object.physicalSize) {
       await db.update(providerObjects).set({
         remoteId: String(existing.metadata.fs_id),
         uploadedBytes: row.object.physicalSize,
