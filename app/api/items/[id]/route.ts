@@ -8,6 +8,7 @@ import { deleteDriveFile } from "@/lib/google/drive";
 import { refreshGoogleAccessToken } from "@/lib/google/oauth";
 import { decryptSecret } from "@/lib/security/crypto";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
+import { deleteManagedProviderObjects } from "@/lib/storage/provider-delete";
 
 const FOLDER = "application/vnd.meshly.folder";
 const patchSchema = z.object({
@@ -110,8 +111,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }
       await deleteDriveFile(access, chunk.driveFileId);
     }
+    const providerDelete = await deleteManagedProviderObjects(userId, ids);
     await db.delete(logicalFiles).where(and(eq(logicalFiles.userId, userId), inArray(logicalFiles.id, ids)));
-    await db.insert(activities).values({ id: nanoid(), userId, kind: "item_deleted_permanently", subjectId: id, metadata: { name: root.name, count: ids.length } });
+    await db.insert(activities).values({ id: nanoid(), userId, kind: "item_deleted_permanently", subjectId: id, metadata: { name: root.name, count: ids.length, providerObjects: providerDelete.deleted } });
     return NextResponse.json({ ok: true, deleted: ids.length });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

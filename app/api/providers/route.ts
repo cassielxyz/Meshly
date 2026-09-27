@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { providerAccounts } from "@/db/provider-schema";
-import { isDropboxConfigured, refreshDropboxAccount } from "@/lib/providers/dropbox";
+import { isDropboxConfigured, isDropboxManagedUploadsEnabled, refreshDropboxAccount } from "@/lib/providers/dropbox";
 import { getTeraBoxAuthorizationUrl, isTeraBoxConfigured, refreshTeraBoxAccount } from "@/lib/providers/terabox";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
 
@@ -44,11 +44,12 @@ export async function GET(request: NextRequest) {
       accounts: accounts.map(safe),
       configuration: {
         dropbox: dropboxConfigured,
+        dropboxManagedUploads: isDropboxManagedUploadsEnabled(),
         terabox: teraboxConfigured,
         mega: false,
       },
       teraboxAuthorizationUrl: teraboxConfigured ? getTeraBoxAuthorizationUrl() : null,
-    });
+    }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     if (error instanceof AuthError) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     console.error("Provider summary failed", error);

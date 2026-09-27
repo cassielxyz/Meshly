@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { getDb } from "@/db/client";
+import { providerAccounts, providerObjects } from "@/db/provider-schema";
 import { activities, chunks, linkedAccounts, logicalFiles, syncState } from "@/db/schema";
 import { readAppDataFile, upsertAppDataFile } from "@/lib/google/drive";
 import { refreshGoogleAccessToken } from "@/lib/google/oauth";
@@ -11,6 +12,12 @@ import { decryptSecret } from "@/lib/security/crypto";
 const RECOVERY_FILE = "meshly-recovery-v2.json";
 
 const accountSchema = z.object({ id: z.string().min(1), email: z.string().email(), googleSubject: z.string().min(1) });
+const providerAccountSchema = z.object({
+  id: z.string().min(1),
+  provider: z.string().min(1),
+  externalAccountId: z.string().min(1),
+  email: z.string().nullable(),
+});
 const fileSchema = z.object({
   id: z.string().min(1),
   parentId: z.string().nullable(),
@@ -45,15 +52,36 @@ const chunkSchema = z.object({
   ciphertextSha256: z.string().nullable().optional(),
   status: z.string().min(1),
 });
-const payloadSchema = z.object({
-  version: z.literal(2),
+const providerObjectSchema = z.object({
+  id: z.string().min(1),
+  fileId: z.string().min(1),
+  providerAccountId: z.string().min(1),
+  provider: z.string().min(1),
+  physicalName: z.string().min(1),
+  remoteId: z.string().nullable(),
+  remotePath: z.string().nullable(),
+  logicalSize: z.number().int().nonnegative(),
+  physicalSize: z.number().int().positive(),
+  ciphertextSha256: z.string().nullable(),
+  status: z.string().min(1),
+});
+const commonPayload = {
   generatedAt: z.string().datetime(),
   sourceUserId: z.string().min(1),
   accounts: z.array(accountSchema),
   files: z.array(fileSchema).max(100000),
   chunks: z.array(chunkSchema).max(500000),
+};
+const payloadV2Schema = z.object({ version: z.literal(2), ...commonPayload });
+const payloadV3Schema = z.object({
+  version: z.literal(3),
+  ...commonPayload,
+  providerAccounts: z.array(providerAccountSchema).max(1000),
+  providerObjects: z.array(providerObjectSchema).max(100000),
 });
+const payloadSchema = z.discriminatedUnion("version", [payloadV2Schema, payloadV3Schema]);
 type RecoveryPayload = z.infer<typeof payloadSchema>;
+type RecoveryPayloadV3 = z.infer<typeof payloadV3Schema>;
 
 function recoveryKey() {
   const key = process.env.RECOVERY_SECRET ?? process.env.SESSION_SECRET;
@@ -73,17 +101,20 @@ function parseRecoveryDocument(content: string) {
 
 export async function buildRecoveryDocument(userId: string) {
   const db = getDb();
-  const [accounts, managedFiles, parts] = await Promise.all([
+  const [accounts, cloudAccounts, managedFiles, parts, cloudObjects] = await Promise.all([
     db.select({ id: linkedAccounts.id, email: linkedAccounts.email, googleSubject: linkedAccounts.googleSubject }).from(linkedAccounts).where(eq(linkedAccounts.userId, userId)),
+    db.select({ id: providerAccounts.id, provider: providerAccounts.provider, externalAccountId: providerAccounts.externalAccountId, email: providerAccounts.email }).from(providerAccounts).where(eq(providerAccounts.userId, userId)),
     db.select().from(logicalFiles).where(and(eq(logicalFiles.userId, userId), eq(logicalFiles.sourceKind, "managed"))),
     db.select({ chunk: chunks }).from(chunks).innerJoin(logicalFiles, eq(chunks.fileId, logicalFiles.id)).where(and(eq(logicalFiles.userId, userId), eq(logicalFiles.sourceKind, "managed"))),
+    db.select({ object: providerObjects }).from(providerObjects).innerJoin(logicalFiles, eq(providerObjects.fileId, logicalFiles.id)).where(and(eq(logicalFiles.userId, userId), eq(logicalFiles.sourceKind, "managed"))),
   ]);
   const managedIds = new Set(managedFiles.map((file) => file.id));
-  const payload: RecoveryPayload = {
-    version: 2,
+  const payload: RecoveryPayloadV3 = {
+    version: 3,
     generatedAt: new Date().toISOString(),
     sourceUserId: userId,
     accounts,
+    providerAccounts: cloudAccounts,
     files: managedFiles.map((file) => ({
       id: file.id,
       parentId: file.parentId && managedIds.has(file.parentId) ? file.parentId : null,
@@ -118,6 +149,19 @@ export async function buildRecoveryDocument(userId: string) {
       ciphertextSha256: chunk.ciphertextSha256,
       status: chunk.status,
     })),
+    providerObjects: cloudObjects.map(({ object }) => ({
+      id: object.id,
+      fileId: object.fileId,
+      providerAccountId: object.providerAccountId,
+      provider: object.provider,
+      physicalName: object.physicalName,
+      remoteId: object.remoteId,
+      remotePath: object.remotePath,
+      logicalSize: object.logicalSize,
+      physicalSize: object.physicalSize,
+      ciphertextSha256: object.ciphertextSha256,
+      status: object.status,
+    })),
   };
   return JSON.stringify({ payload, signature: signatureFor(payload).toString("base64url") });
 }
@@ -142,13 +186,16 @@ export async function writeRecoverySnapshot(userId: string) {
       await db.insert(syncState).values({ accountId: account.id, lastError: message }).onConflictDoUpdate({ target: syncState.accountId, set: { lastError: message, updatedAt: new Date() } });
     }
   }
-  await db.insert(activities).values({ id: nanoid(), userId, kind: "recovery_snapshot", metadata: { written, failures: failures.length } });
+  await db.insert(activities).values({ id: nanoid(), userId, kind: "recovery_snapshot", metadata: { written, failures: failures.length, manifestVersion: 3 } });
   return { written, failures };
 }
 
 export async function restoreRecoverySnapshot(userId: string) {
   const db = getDb();
-  const currentAccounts = await db.select().from(linkedAccounts).where(eq(linkedAccounts.userId, userId));
+  const [currentAccounts, currentProviderAccounts] = await Promise.all([
+    db.select().from(linkedAccounts).where(eq(linkedAccounts.userId, userId)),
+    db.select().from(providerAccounts).where(eq(providerAccounts.userId, userId)),
+  ]);
   if (!currentAccounts.length) throw new Error("Connect at least one Google account before recovery");
 
   const candidates: { payload: RecoveryPayload; from: string }[] = [];
@@ -175,14 +222,33 @@ export async function restoreRecoverySnapshot(userId: string) {
     if (current) accountMap.set(old.id, current.id);
   }
 
+  const providerAccountMap = new Map<string, string>();
+  if (selected.payload.version === 3) {
+    const currentByIdentity = new Map(currentProviderAccounts.map((account) => [`${account.provider}:${account.externalAccountId}`, account]));
+    const currentByProviderEmail = new Map(currentProviderAccounts.filter((account) => account.email).map((account) => [`${account.provider}:${account.email!.toLowerCase()}`, account]));
+    for (const old of selected.payload.providerAccounts) {
+      const current = currentByIdentity.get(`${old.provider}:${old.externalAccountId}`) ?? (old.email ? currentByProviderEmail.get(`${old.provider}:${old.email.toLowerCase()}`) : undefined);
+      if (current) providerAccountMap.set(old.id, current.id);
+    }
+  }
+
   if (selected.payload.files.length) {
     const existing = await db.select({ id: logicalFiles.id, userId: logicalFiles.userId }).from(logicalFiles).where(inArray(logicalFiles.id, selected.payload.files.map((file) => file.id)));
     const foreign = existing.find((file) => file.userId !== userId);
     if (foreign) throw new Error("Recovery ID collision detected; restore aborted safely");
   }
 
+  if (selected.payload.version === 3 && selected.payload.providerObjects.length) {
+    const existingObjects = await db.select({ id: providerObjects.id, owner: providerAccounts.userId })
+      .from(providerObjects)
+      .innerJoin(providerAccounts, eq(providerObjects.providerAccountId, providerAccounts.id))
+      .where(inArray(providerObjects.id, selected.payload.providerObjects.map((object) => object.id)));
+    if (existingObjects.some((object) => object.owner !== userId)) throw new Error("Provider recovery ID collision detected; restore aborted safely");
+  }
+
   const unmappedFiles = new Set<string>();
   let restoredChunks = 0;
+  let restoredProviderObjects = 0;
   await db.transaction(async (tx) => {
     for (const file of selected.payload.files) {
       const encryptionVersion = file.encryptionVersion ?? 0;
@@ -278,15 +344,74 @@ export async function restoreRecoverySnapshot(userId: string) {
       restoredChunks++;
     }
 
+    if (selected.payload.version === 3) {
+      for (const object of selected.payload.providerObjects) {
+        const mappedAccount = providerAccountMap.get(object.providerAccountId);
+        if (!mappedAccount || object.status !== "ready" || !object.remotePath) {
+          unmappedFiles.add(object.fileId);
+          continue;
+        }
+        await tx.insert(providerObjects).values({
+          id: object.id,
+          fileId: object.fileId,
+          providerAccountId: mappedAccount,
+          provider: object.provider,
+          physicalName: object.physicalName,
+          remoteId: object.remoteId,
+          remotePath: object.remotePath,
+          logicalSize: object.logicalSize,
+          physicalSize: object.physicalSize,
+          ciphertextSha256: object.ciphertextSha256,
+          uploadSessionEncrypted: null,
+          uploadedBytes: object.physicalSize,
+          status: "ready",
+          metadata: { restoredFromRecovery: true },
+        }).onConflictDoUpdate({
+          target: providerObjects.fileId,
+          set: {
+            providerAccountId: mappedAccount,
+            provider: object.provider,
+            physicalName: object.physicalName,
+            remoteId: object.remoteId,
+            remotePath: object.remotePath,
+            logicalSize: object.logicalSize,
+            physicalSize: object.physicalSize,
+            ciphertextSha256: object.ciphertextSha256,
+            uploadSessionEncrypted: null,
+            uploadedBytes: object.physicalSize,
+            status: "ready",
+            metadata: { restoredFromRecovery: true },
+            updatedAt: new Date(),
+          },
+        });
+        restoredProviderObjects++;
+      }
+    }
+
     for (const fileId of unmappedFiles) await tx.update(logicalFiles).set({ status: "degraded", updatedAt: new Date() }).where(eq(logicalFiles.id, fileId));
-    await tx.insert(activities).values({ id: nanoid(), userId, kind: "recovery_restore", metadata: { source: selected.from, generatedAt: selected.payload.generatedAt, files: selected.payload.files.length, chunks: restoredChunks, unmappedFiles: unmappedFiles.size } });
+    await tx.insert(activities).values({
+      id: nanoid(),
+      userId,
+      kind: "recovery_restore",
+      metadata: {
+        source: selected.from,
+        generatedAt: selected.payload.generatedAt,
+        manifestVersion: selected.payload.version,
+        files: selected.payload.files.length,
+        chunks: restoredChunks,
+        providerObjects: restoredProviderObjects,
+        unmappedFiles: unmappedFiles.size,
+      },
+    });
   });
 
   return {
     source: selected.from,
     generatedAt: selected.payload.generatedAt,
+    manifestVersion: selected.payload.version,
     restoredFiles: selected.payload.files.length,
     restoredChunks,
+    restoredProviderObjects,
     unmappedFiles: unmappedFiles.size,
     readFailures,
   };

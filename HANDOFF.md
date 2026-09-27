@@ -4,54 +4,63 @@
 
 **Updated:** 2026-09-27  
 **Repository:** `cassielxyz/Meshly`  
-**Active branch:** `main`  
-**Active PR:** none  
-**Current main:** `46451951236f0e49132908dd35c471cdefdc3533`  
-**Verified CI:** `36318726309`  
-**Verified production deployment:** `dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj`
+**Active branch:** `work/dropbox-encrypted-transfers`  
+**Active PR:** `#13` — `feat: add encrypted Dropbox managed transfers`  
+**Base main:** `684faf96f1ab7ddf9edb0f63de2c3b8749c2bc1f`  
+**Latest verified branch CI:** `36320647090` at `ad2539abc9c9a22db25083b2f78e68a6b1c97e17`  
+**Verified production deployment before this branch:** `dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj`
 
 ## Active task
 
-Verify the production fixes for user-reported provider correctness gaps: pre-existing Google files, per-account Google quota accuracy, and real Other Clouds connection/browse behavior. Continue without storing credentials, OAuth codes, provider tokens or plaintext file keys in Git or chat.
+Complete the activation-gated encrypted Dropbox managed-file path without claiming live provider verification. Keep `DROPBOX_MANAGED_UPLOADS_ENABLED=false` until real production Dropbox credentials pass upload/download/hash, resume/retry, integrity, delete and recovery tests.
 
-## Production state already verified
+## Verified on this branch
 
-Live on `https://meshly.cassielae.me`:
+GitHub Actions run `36320647090` passed install, checkpoint validation, production dependency audit, lint, typecheck, tests and Next.js build.
 
-- deployment `dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj` is READY at main commit `46451951236f0e49132908dd35c471cdefdc3533`;
-- main CI run `36318726309` passed install/checkpoint/audit/lint/typecheck/test/build;
-- `/api/readiness` is HTTP 200 with environment/database/migrations true;
-- `encryptionSchema: "v1"` and `providerSchema: "v1"` are live;
-- provider account migration `0006_provider_accounts.sql` is deployed;
-- Google account/storage routes now refresh stale quota data from Google;
-- Accounts UI has account-targeted **Show existing files** and Full Drive sync controls;
-- Full Drive OAuth requests read-only access to all existing Drive files plus app-scoped `drive.file` writes and appdata;
-- successful Full Drive callback now redirects into an account-specific initial index;
-- Other Clouds now contains real Dropbox/TeraBox official-API auth/quota/browse foundations instead of static placeholders;
-- MEGA remains explicitly disabled pending an official SDK worker;
-- non-Google encrypted managed upload/download remains behind the provider activation gate and is not claimed complete.
+The branch now contains:
+
+- migration `0007_provider_objects.sql` and a provider-object persistence model separate from Google `chunks`;
+- browser-side Meshly encryption v1 reused for Dropbox managed uploads;
+- encrypted upload proxy slices capped at 3 MiB so provider OAuth/session secrets stay server-side and requests remain below the hosting request-body ceiling;
+- official Dropbox upload-session start/append/finish primitives with offset reconciliation;
+- opaque `/Meshly Storage/msh_*.bin` physical names; original logical names remain in Meshly metadata;
+- remote file/size verification before the logical file becomes `ready`;
+- encrypted ranged Dropbox download and server-side frame decryption using the same Meshly v1 format;
+- safe pending-upload abort, permanent provider-object deletion and provider-account disconnect guards;
+- provider-object integrity checks for remote existence/type/size;
+- recovery manifest payload version 3 including provider-account identities and provider-object locations, while excluding OAuth tokens, provider upload-session IDs and plaintext file keys;
+- readiness schema check extended to `provider_objects`, reporting `providerSchema: "v2"` after migration;
+- explicit `DROPBOX_MANAGED_UPLOADS_ENABLED` feature gate, off by default.
+
+## Still not verified / not active
+
+- No real Dropbox encrypted production round trip has been run yet.
+- The production database does not have migration `0007` until this PR is merged and a production deploy succeeds.
+- The Dropbox managed-upload safety gate must remain off until live verification passes.
+- TeraBox encrypted managed transfer is not implemented yet; its auth/quota/browse foundation remains available.
+- MEGA remains disabled pending an official SDK-backed worker.
+- User-completed Full Drive indexing and exact Google quota comparison are still pending browser verification.
+- Meshly must not be called `production_verified` yet.
 
 ## Exact next action
 
-The next verification step requires the authenticated user's browser:
-
-1. Open `https://meshly.cassielae.me/accounts` while signed in.
-2. On the affected Google account, choose **Show existing files**.
-3. Complete Google's consent flow. Do not share password, OAuth code, cookie, access token or refresh token.
-4. On return to Meshly, allow the initial index to complete and confirm whether the older Drive files appear.
-5. Use **Refresh live data** and compare quota/used/free with that exact Google account.
-6. Continue with the deterministic encrypted Google upload/download SHA-256 round trip.
-
-After Google correctness is proven, configure Dropbox/TeraBox application credentials outside chat and verify live auth/quota/browse. Then implement and live-test their encrypted managed transfer paths before marking them upload-active.
+1. Verify the newest PR #13 CI after this checkpoint-only fix.
+2. Merge PR #13 only after that exact head is green.
+3. Let the production migration runner apply `0007_provider_objects.sql`; verify `/api/readiness` returns HTTP 200 with `providerSchema: "v2"` while the Dropbox upload gate stays off.
+4. Continue non-secret-safe work on TeraBox encrypted transfers and provider UI while waiting for external provider credentials.
+5. When Dropbox application credentials are configured outside chat, connect a test account and live-test encrypted upload -> opaque object -> download/decrypt SHA-256 equality, interrupted/retried transfer, integrity scan, permanent delete and recovery restore.
+6. Only after those tests pass may `DROPBOX_MANAGED_UPLOADS_ENABLED=true` be set in production and exposed as an active upload destination.
+7. Separately complete the pending Full Drive existing-file/quota verification in the authenticated browser.
 
 ## Invariants
 
-- Never request or store production secrets, provider credentials, Google passwords, OAuth codes, cookies or tokens in chat/repository files.
+- Never request or store production secrets, provider credentials, passwords, OAuth codes, cookies or tokens in chat/repository files.
 - New Meshly-managed files remain encrypted before provider storage.
+- Provider OAuth and upload-session secrets stay server-side and encrypted at rest.
+- No logical file becomes `ready` before the remote encrypted object is verified.
 - Google managed files remain whole-file-only in one Google account.
-- Existing Google files require explicit broader read consent; do not silently broaden normal managed sign-in.
 - Provider connection/browsing does not equal encrypted-upload support.
+- Dropbox upload support stays feature-gated until provider-specific live tests pass.
 - Current encryption is backend-trusted, not zero-knowledge.
-- Production migrations are idempotent/checksum-verified and run only on Vercel production builds.
-- Preview/local/CI builds must not mutate production database state.
 - Repository/deployment state newer than this handoff wins.

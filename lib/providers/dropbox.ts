@@ -43,6 +43,13 @@ export type DropboxEntry = {
   content_hash?: string;
 };
 
+export type DropboxUploadResult = DropboxEntry & {
+  ".tag": "file";
+  id: string;
+  path_display: string;
+  size: number;
+};
+
 function config() {
   const clientId = process.env.DROPBOX_CLIENT_ID;
   const clientSecret = process.env.DROPBOX_CLIENT_SECRET;
@@ -59,6 +66,10 @@ export function isDropboxConfigured() {
   } catch {
     return false;
   }
+}
+
+export function isDropboxManagedUploadsEnabled() {
+  return isDropboxConfigured() && process.env.DROPBOX_MANAGED_UPLOADS_ENABLED === "true";
 }
 
 export function buildDropboxAuthorizationUrl(state: string) {
@@ -104,6 +115,47 @@ async function rpc<T>(accessToken: string, path: string, body: unknown = null) {
   });
   if (!response.ok) throw new Error(`Dropbox API ${path} failed (${response.status})`);
   return response.json() as Promise<T>;
+}
+
+function arrayBufferBody(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function contentRpc<T>(accessToken: string, path: string, arg: unknown, body: ArrayBuffer | null) {
+  const response = await fetch(`${DROPBOX_CONTENT}${path}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/octet-stream",
+      "dropbox-api-arg": JSON.stringify(arg),
+    },
+    body: body ?? new ArrayBuffer(0),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    let detail: unknown = null;
+    try { detail = await response.json(); } catch { /* ignore non-json provider errors */ }
+    const error = new Error(`Dropbox content API ${path} failed (${response.status})`) as Error & { status?: number; detail?: unknown };
+    error.status = response.status;
+    error.detail = detail;
+    throw error;
+  }
+  if (response.status === 204 || response.headers.get("content-length") === "0") return undefined as T;
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+function findCorrectOffset(value: unknown): number | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.correct_offset === "number" && Number.isSafeInteger(record.correct_offset) && record.correct_offset >= 0) return record.correct_offset;
+  for (const nested of Object.values(record)) {
+    const found = findCorrectOffset(nested);
+    if (found !== null) return found;
+  }
+  return null;
 }
 
 export function getDropboxProfile(accessToken: string) {
@@ -175,10 +227,72 @@ export async function listDropboxFolder(accessToken: string, path = "") {
   return entries;
 }
 
-export async function downloadDropboxFile(accessToken: string, path: string) {
+export function getDropboxMetadata(accessToken: string, path: string) {
+  return rpc<DropboxEntry>(accessToken, "/files/get_metadata", { path, include_media_info: false, include_deleted: false });
+}
+
+export async function tryGetDropboxMetadata(accessToken: string, path: string) {
+  try {
+    return await getDropboxMetadata(accessToken, path);
+  } catch (error) {
+    if (error instanceof Error && /\(409\)/.test(error.message)) return null;
+    throw error;
+  }
+}
+
+export async function ensureDropboxFolder(accessToken: string, path: string) {
+  const existing = await tryGetDropboxMetadata(accessToken, path);
+  if (existing) {
+    if (existing[".tag"] !== "folder") throw new Error(`Dropbox path ${path} exists but is not a folder`);
+    return;
+  }
+  try {
+    await rpc(accessToken, "/files/create_folder_v2", { path, autorename: false });
+  } catch (error) {
+    const afterConflict = await tryGetDropboxMetadata(accessToken, path);
+    if (!afterConflict || afterConflict[".tag"] !== "folder") throw error;
+  }
+}
+
+export async function startDropboxUploadSession(accessToken: string) {
+  const result = await contentRpc<{ session_id: string }>(accessToken, "/files/upload_session/start", { close: false }, null);
+  if (!result?.session_id) throw new Error("Dropbox did not return an upload session id");
+  return result.session_id;
+}
+
+export async function appendDropboxUploadSession(accessToken: string, sessionId: string, offset: number, body: Uint8Array) {
+  try {
+    await contentRpc<void>(accessToken, "/files/upload_session/append_v2", { cursor: { session_id: sessionId, offset }, close: false }, arrayBufferBody(body));
+    return { acceptedOffset: offset + body.byteLength, reconciled: false as const };
+  } catch (error) {
+    const providerError = error as Error & { status?: number; detail?: unknown };
+    if (providerError.status === 409) {
+      const correctOffset = findCorrectOffset(providerError.detail);
+      if (correctOffset !== null) return { acceptedOffset: correctOffset, reconciled: true as const };
+    }
+    throw error;
+  }
+}
+
+export async function finishDropboxUploadSession(accessToken: string, sessionId: string, offset: number, path: string) {
+  return contentRpc<DropboxUploadResult>(accessToken, "/files/upload_session/finish", {
+    cursor: { session_id: sessionId, offset },
+    commit: { path, mode: "add", autorename: false, mute: true, strict_conflict: true },
+  }, null);
+}
+
+export function deleteDropboxPath(accessToken: string, path: string) {
+  return rpc<{ metadata: DropboxEntry }>(accessToken, "/files/delete_v2", { path });
+}
+
+export async function downloadDropboxFile(accessToken: string, path: string, range?: string) {
   return fetch(`${DROPBOX_CONTENT}/files/download`, {
     method: "POST",
-    headers: { authorization: `Bearer ${accessToken}`, "dropbox-api-arg": JSON.stringify({ path }) },
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "dropbox-api-arg": JSON.stringify({ path }),
+      ...(range ? { range } : {}),
+    },
     cache: "no-store",
   });
 }
