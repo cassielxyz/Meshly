@@ -4,6 +4,7 @@ import { getDb } from "@/db/client";
 import { providerAccounts, providerObjects } from "@/db/provider-schema";
 import { logicalFiles } from "@/db/schema";
 import { deleteDropboxPath, getDropboxAccessToken, tryGetDropboxMetadata } from "@/lib/providers/dropbox";
+import { deleteTeraBoxFile, getTeraBoxFileMetadata } from "@/lib/providers/terabox";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const accessToken = await getDropboxAccessToken(row.account);
       const remote = await tryGetDropboxMetadata(accessToken, row.object.remotePath);
       if (remote) await deleteDropboxPath(accessToken, row.object.remotePath);
+    }
+    if (row.object.provider === "terabox" && row.object.remotePath) {
+      const remote = await getTeraBoxFileMetadata(row.account, row.object.remotePath, false).catch(() => null);
+      if (remote?.metadata) await deleteTeraBoxFile(row.account, row.object.remotePath);
     }
     await db.delete(logicalFiles).where(and(eq(logicalFiles.id, row.file.id), eq(logicalFiles.userId, userId)));
     return NextResponse.json({ ok: true });
