@@ -11,6 +11,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
+  "frame-src 'self' https://www.terabox.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self' https://accounts.google.com",

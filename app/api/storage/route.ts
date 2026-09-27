@@ -1,2 +1,48 @@
-import{NextRequest,NextResponse}from"next/server";import{eq}from"drizzle-orm";import{getDb}from"@/db/client";import{linkedAccounts,syncState}from"@/db/schema";import{refreshUserAccounts}from"@/lib/google/account-service";import{AuthError,requireRequestUser}from"@/lib/server/auth";
-export async function GET(request:NextRequest){try{const{userId}=await requireRequestUser(request);const db=getDb();const accounts=request.nextUrl.searchParams.get("refresh")==="1"?await refreshUserAccounts(userId):await db.select().from(linkedAccounts).where(eq(linkedAccounts.userId,userId));const states=await db.select().from(syncState);const stateMap=new Map(states.map(x=>[x.accountId,x]));const safe=accounts.map(a=>({id:a.id,email:a.email,name:a.name,avatarUrl:a.avatarUrl,mode:a.mode,status:a.status,priority:a.priority,quotaLimit:a.quotaLimit,quotaUsage:a.quotaUsage,free:Math.max(0,a.quotaLimit-a.quotaUsage),updatedAt:a.updatedAt.toISOString(),lastQuotaRefresh:stateMap.get(a.id)?.lastQuotaRefresh?.toISOString()??null,lastRecoverySnapshot:stateMap.get(a.id)?.lastRecoverySnapshot?.toISOString()??null,lastError:stateMap.get(a.id)?.lastError??null}));const total=safe.reduce((n,a)=>n+a.quotaLimit,0),used=safe.reduce((n,a)=>n+a.quotaUsage,0);return NextResponse.json({total,used,free:Math.max(0,total-used),healthy:safe.filter(a=>a.status==="healthy").length,accounts:safe});}catch(error){if(error instanceof AuthError)return NextResponse.json({error:"unauthorized"},{status:401});console.error("Storage summary failed",error);return NextResponse.json({error:"storage_failed"},{status:500});}}
+import { NextRequest, NextResponse } from "next/server";
+import { inArray } from "drizzle-orm";
+import { getDb } from "@/db/client";
+import { syncState } from "@/db/schema";
+import { refreshUserAccounts } from "@/lib/google/account-service";
+import { AuthError, requireRequestUser } from "@/lib/server/auth";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await requireRequestUser(request);
+    const db = getDb();
+    const force = request.nextUrl.searchParams.get("refresh") === "1";
+    const accounts = await refreshUserAccounts(userId, force);
+    const states = accounts.length
+      ? await db.select().from(syncState).where(inArray(syncState.accountId, accounts.map((account) => account.id)))
+      : [];
+    const stateMap = new Map(states.map((state) => [state.accountId, state]));
+    const safe = accounts.map((account) => ({
+      id: account.id,
+      email: account.email,
+      name: account.name,
+      avatarUrl: account.avatarUrl,
+      mode: account.mode,
+      status: account.status,
+      priority: account.priority,
+      quotaLimit: account.quotaLimit,
+      quotaUsage: account.quotaUsage,
+      free: Math.max(0, account.quotaLimit - account.quotaUsage),
+      updatedAt: account.updatedAt.toISOString(),
+      lastQuotaRefresh: stateMap.get(account.id)?.lastQuotaRefresh?.toISOString() ?? null,
+      lastRecoverySnapshot: stateMap.get(account.id)?.lastRecoverySnapshot?.toISOString() ?? null,
+      lastError: stateMap.get(account.id)?.lastError ?? null,
+    }));
+    const total = safe.reduce((sum, account) => sum + account.quotaLimit, 0);
+    const used = safe.reduce((sum, account) => sum + account.quotaUsage, 0);
+    return NextResponse.json({
+      total,
+      used,
+      free: Math.max(0, total - used),
+      healthy: safe.filter((account) => account.status === "healthy").length,
+      accounts: safe,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    console.error("Storage summary failed", error);
+    return NextResponse.json({ error: "storage_failed" }, { status: 500 });
+  }
+}
