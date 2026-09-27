@@ -121,7 +121,7 @@ export async function uploadMeshlyTeraBoxFile(
 
     for (let frameIndex = 0; frameIndex < frames; frameIndex += 1) {
       const layout = frameLayout(file.size, frameIndex, plan.encryption.framePlainBytes, plan.encryption.tagBytes);
-      const plainBuffer = await file.slice(layout.plainStart, layout.plainStart + layout.plainSize).arrayBuffer();
+      const plainBuffer = await file.slice(layout.plainOffset, layout.plainOffset + layout.plainSize).arrayBuffer();
       plaintextHash.update(new Uint8Array(plainBuffer));
       onProgress?.({ phase: "encrypting", percent: Math.round(10 + (frameIndex / Math.max(1, frames)) * 20) });
       const encrypted = await encryptManagedFrame({ key, noncePrefix, fileId: plan.fileId, fileSize: file.size, frameIndex, plaintext: plainBuffer });
