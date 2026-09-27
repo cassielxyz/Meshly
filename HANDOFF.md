@@ -6,54 +6,51 @@
 **Repository:** `cassielxyz/Meshly`  
 **Active branch:** `main`  
 **Active PR:** none  
-**Current main:** `8c748046577739f679eebc9863139c6d983cadda`  
-**Verified CI:** `36285454881`  
-**Verified production deployment:** `dpl_Hf3g7pzhCto1LspvNFQU9ppCH7zZ`
+**Current main:** `46451951236f0e49132908dd35c471cdefdc3533`  
+**Verified CI:** `36318726309`  
+**Verified production deployment:** `dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj`
 
 ## Active task
 
-Continue authenticated production verification without storing credentials, OAuth codes, provider tokens or plaintext file keys in Git or chat.
+Verify the production fixes for user-reported provider correctness gaps: pre-existing Google files, per-account Google quota accuracy, and real Other Clouds connection/browse behavior. Continue without storing credentials, OAuth codes, provider tokens or plaintext file keys in Git or chat.
 
 ## Production state already verified
 
 Live on `https://meshly.cassielae.me`:
 
-- deployment is READY;
-- `/`, `/privacy`, `/terms` are deployed;
-- `/api/health` is HTTP 200 with OAuth/database configured;
-- `/api/readiness` is HTTP 200 with `environment: true`, `database: true`, `migrations: true`, `encryptionSchema: "v1"`;
-- managed Google OAuth start uses identity + `drive.file` + `drive.appdata`, offline access, PKCE S256 and exact production callback;
-- production security headers are present;
-- production database migrations through `0005` are live;
-- no grouped runtime errors were found in the inspected five-minute window after the successful deployment.
-
-## Migration blocker resolved autonomously
-
-The production migration build initially failed. A preview-only, rollback-only database probe was used to diagnose it without exposing database credentials or persisting diagnostic tables.
-
-The probe proved:
-
-- database/schema CREATE permissions were available;
-- `_meshly_migrations` existed but migration `0001` had not been recorded;
-- exact dry-run of `0001_meshly.sql` failed with PostgreSQL `42601` / `scanner_yyerror` at unquoted `offset`;
-- the transaction rolled back fully.
-
-`db/migrations/0001_meshly.sql` now quotes `"offset"`. Production then migrated and deployed successfully.
+- deployment `dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj` is READY at main commit `46451951236f0e49132908dd35c471cdefdc3533`;
+- main CI run `36318726309` passed install/checkpoint/audit/lint/typecheck/test/build;
+- `/api/readiness` is HTTP 200 with environment/database/migrations true;
+- `encryptionSchema: "v1"` and `providerSchema: "v1"` are live;
+- provider account migration `0006_provider_accounts.sql` is deployed;
+- Google account/storage routes now refresh stale quota data from Google;
+- Accounts UI has account-targeted **Show existing files** and Full Drive sync controls;
+- Full Drive OAuth requests read-only access to all existing Drive files plus app-scoped `drive.file` writes and appdata;
+- successful Full Drive callback now redirects into an account-specific initial index;
+- Other Clouds now contains real Dropbox/TeraBox official-API auth/quota/browse foundations instead of static placeholders;
+- MEGA remains explicitly disabled pending an official SDK worker;
+- non-Google encrypted managed upload/download remains behind the provider activation gate and is not claimed complete.
 
 ## Exact next action
 
-The remaining blocker is user-authenticated Google interaction, which cannot be completed with repository/Vercel tooling alone.
+The next verification step requires the authenticated user's browser:
 
-1. User opens `https://meshly.cassielae.me` and completes Google sign-in/consent normally.
-2. Do not share passwords, OAuth codes, cookies or tokens in chat.
-3. After sign-in succeeds (or an error appears), continue from the observed result.
-4. Then run a small encrypted Auto-account upload/download SHA-256 round trip, remote ciphertext/name inspection, and explicit-account round trip.
+1. Open `https://meshly.cassielae.me/accounts` while signed in.
+2. On the affected Google account, choose **Show existing files**.
+3. Complete Google's consent flow. Do not share password, OAuth code, cookie, access token or refresh token.
+4. On return to Meshly, allow the initial index to complete and confirm whether the older Drive files appear.
+5. Use **Refresh live data** and compare quota/used/free with that exact Google account.
+6. Continue with the deterministic encrypted Google upload/download SHA-256 round trip.
+
+After Google correctness is proven, configure Dropbox/TeraBox application credentials outside chat and verify live auth/quota/browse. Then implement and live-test their encrypted managed transfer paths before marking them upload-active.
 
 ## Invariants
 
-- Never request or store production secrets or Google credentials in chat/repository files.
+- Never request or store production secrets, provider credentials, Google passwords, OAuth codes, cookies or tokens in chat/repository files.
 - New Meshly-managed files remain encrypted before provider storage.
 - Google managed files remain whole-file-only in one Google account.
+- Existing Google files require explicit broader read consent; do not silently broaden normal managed sign-in.
+- Provider connection/browsing does not equal encrypted-upload support.
 - Current encryption is backend-trusted, not zero-knowledge.
 - Production migrations are idempotent/checksum-verified and run only on Vercel production builds.
 - Preview/local/CI builds must not mutate production database state.

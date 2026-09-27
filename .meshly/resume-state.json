@@ -3,12 +3,12 @@
   "project": "Meshly",
   "repository": "cassielxyz/Meshly",
   "activeBranch": "main",
-  "resumeStatus": "production_readiness_green_waiting_for_authenticated_google_flow",
-  "lastStableCheckpoint": "docs/checkpoints/2026-09-27-production-readiness-green.md",
-  "lastVerifiedRuntimeCommit": "8c748046577739f679eebc9863139c6d983cadda",
-  "lastVerifiedCiRun": "36285454881",
-  "deployedMainCommit": "8c748046577739f679eebc9863139c6d983cadda",
-  "verifiedProductionDeployment": "dpl_Hf3g7pzhCto1LspvNFQU9ppCH7zZ",
+  "resumeStatus": "provider_correctness_foundation_deployed_waiting_for_live_user_provider_verification",
+  "lastStableCheckpoint": "docs/checkpoints/2026-09-27-provider-correctness-foundation.md",
+  "lastVerifiedRuntimeCommit": "46451951236f0e49132908dd35c471cdefdc3533",
+  "lastVerifiedCiRun": "36318726309",
+  "deployedMainCommit": "46451951236f0e49132908dd35c471cdefdc3533",
+  "verifiedProductionDeployment": "dpl_3HheJK8KK8ifoGEJfsgjBChoY5hj",
   "requiredReads": [
     "AGENTS.md",
     "HANDOFF.md",
@@ -17,23 +17,26 @@
     ".meshly/project-state.json",
     ".meshly/current-task.json",
     ".meshly/resume-state.json",
-    "docs/checkpoints/2026-09-27-production-readiness-green.md"
+    "docs/checkpoints/2026-09-27-provider-correctness-foundation.md"
   ],
   "resumeProcedure": [
     "inspect_current_main_and_latest_production_deployment",
-    "rerun_health_and_readiness_before_assuming_live_state_is_unchanged",
-    "confirm_readiness_environment_database_migrations_true",
-    "continue_from_real_google_sign_in_result",
-    "after_authenticated_session_run_encrypted_auto_and_selected_account_round_trip_tests",
+    "rerun_readiness_and_require_provider_schema_v1",
+    "continue_from_user_show_existing_files_google_consent_result",
+    "verify_initial_full_drive_index_and_per_account_quota_accuracy",
+    "run_google_encrypted_auto_and_selected_account_round_trip_tests",
+    "configure_dropbox_terabox_provider_credentials_outside_chat_before_live_provider_tests",
+    "do_not_activate_non_google_encrypted_uploads_until_provider_specific_transfer_tests_pass",
     "update_all_checkpoint_layers_after_the_next_verified_milestone"
   ],
-  "exactNextAction": "Have the user complete normal Google sign-in at https://meshly.cassielae.me without sharing credentials; continue from callback success or the exact visible error.",
+  "exactNextAction": "Have the signed-in user open https://meshly.cassielae.me/accounts, press Show existing files for the affected Google account, complete consent without sharing credentials, then verify the old Drive files and live quota values after the automatic initial index.",
   "notes": [
-    "production_readiness_is_http_200_with_environment_database_migrations_true_and_encryption_schema_v1",
-    "migration_0001_reserved_offset_bug_was_diagnosed_with_a_rollback_only_preview_probe_and_fixed",
-    "production_migrations_through_0005_are_live",
-    "managed_google_oauth_start_is_live_verified",
-    "real_google_callback_and_provider_round_trip_still_require_authenticated_user_interaction",
+    "production_readiness_http_200_environment_database_migrations_true_encryption_schema_v1_provider_schema_v1",
+    "main_commit_46451951236f0e49132908dd35c471cdefdc3533_and_ci_36318726309_are_verified",
+    "google_stale_quota_refresh_and_targeted_full_drive_initial_index_are_deployed_but_need_real_user_verification",
+    "dropbox_and_terabox_official_connection_quota_browse_foundations_are_deployed_but_not_live_verified_without_provider_app_credentials",
+    "non_google_encrypted_managed_upload_download_is_not_yet_claimed_complete",
+    "mega_requires_official_sdk_backed_worker",
     "repository_and_deployment_state_newer_than_checkpoint_files_wins"
   ]
 }
