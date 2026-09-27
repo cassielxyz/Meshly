@@ -58,7 +58,8 @@ The current design is **backend-trusted encryption**, not zero-knowledge encrypt
 - abort cleanup for failed uploads;
 - HTTP Range-aware encrypted downloads;
 - remote-object verification before a logical file becomes ready;
-- provider-aware transfer profiles instead of one global concurrency setting.
+- provider-aware transfer profiles instead of one global concurrency setting;
+- dedicated ciphertext-only TeraBox large-file worker path, kept activation-gated until deployed live verification passes.
 
 ### Account and file health
 
@@ -77,13 +78,15 @@ The current design is **backend-trusted encryption**, not zero-knowledge encrypt
 | --- | --- | --- | --- |
 | Google Drives | Google Drive | Core provider implemented | Encrypted whole-file resumable path implemented |
 | Other Clouds | Dropbox | Official OAuth, quota/browse and encrypted-transfer foundation implemented | Activation-gated pending live provider round-trip verification |
-| Other Clouds | TeraBox | Official Open Platform quota/browse and encrypted small-file foundation implemented | Small-file path activation-gated; dedicated large-file worker remains pending |
+| Other Clouds | TeraBox | Official Open Platform quota/browse, encrypted small-file path and dedicated large-file worker code implemented | Both managed-upload paths remain activation-gated pending deployed live provider round-trip verification |
 | Other Clouds | MEGA | Provider capability/worker gate defined | Official SDK-backed worker remains pending |
 | Other Clouds | MediaFire | Experimental only | Disabled until a suitable supported production integration is verified |
 
 A provider being connected or browsable does **not** mean managed uploads are automatically enabled. Unverified upload paths fail closed.
 
 Multipart **transport** is also different from persistent distributed storage: using several transfer parts does not mean Meshly may persist one logical file across unrelated provider objects/accounts.
+
+The TeraBox large-file worker is documented in [`workers/terabox/README.md`](workers/terabox/README.md). Its browser-facing capability contains object/size/frame bindings only; provider credentials remain on the trusted server side.
 
 ## Encryption and download flow
 
@@ -228,7 +231,7 @@ The codebase is intentionally explicit about work that cannot be truthfully call
 3. complete real Google existing-file/quota browser verification after explicit user OAuth consent;
 4. run encrypted Google Auto and explicitly selected-account SHA-256 round trips;
 5. live-verify Dropbox and TeraBox provider transfers with credentials configured outside the repository/chat;
-6. finish the dedicated TeraBox large-file transfer worker;
+6. deploy and live-verify the TeraBox large-file worker, including multi-frame encrypted upload/download/integrity/delete/abort behavior, before enabling its production gate;
 7. finish the official SDK-backed MEGA worker;
 8. run deployed integrity, recovery, sharing and maintenance smoke tests.
 
