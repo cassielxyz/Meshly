@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
       priority: account.priority,
       quotaLimit: account.quotaLimit,
       quotaUsage: account.quotaUsage,
+      quotaUsageInDrive: account.quotaUsageInDrive,
+      quotaUsageInDriveTrash: account.quotaUsageInDriveTrash,
       free: Math.max(0, account.quotaLimit - account.quotaUsage),
       updatedAt: account.updatedAt.toISOString(),
       lastQuotaRefresh: stateMap.get(account.id)?.lastQuotaRefresh?.toISOString() ?? null,
@@ -33,9 +35,13 @@ export async function GET(request: NextRequest) {
     }));
     const total = safe.reduce((sum, account) => sum + account.quotaLimit, 0);
     const used = safe.reduce((sum, account) => sum + account.quotaUsage, 0);
+    const driveUsed = safe.reduce((sum, account) => sum + account.quotaUsageInDrive, 0);
+    const driveTrashUsed = safe.reduce((sum, account) => sum + account.quotaUsageInDriveTrash, 0);
     return NextResponse.json({
       total,
       used,
+      driveUsed,
+      driveTrashUsed,
       free: Math.max(0, total - used),
       healthy: safe.filter((account) => account.status === "healthy").length,
       accounts: safe,

@@ -7,6 +7,11 @@ import { ensureMeshlyFolder, getDriveAbout } from "@/lib/google/drive";
 import { exchangeGoogleCode, getGoogleProfile, type GoogleMode } from "@/lib/google/oauth";
 import { createSessionToken, encryptSecret, verifySessionToken } from "@/lib/security/crypto";
 
+function safeBytes(value: string | undefined) {
+  const parsed = Number(value ?? 0);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+}
+
 export async function GET(request: NextRequest) {
   const fail = (reason: string) => NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(reason)}`, request.url));
   try {
@@ -67,10 +72,10 @@ export async function GET(request: NextRequest) {
     const refreshTokenEncrypted = tokens.refresh_token ? encryptSecret(tokens.refresh_token) : old?.refreshTokenEncrypted;
     if (!refreshTokenEncrypted) return fail("refresh_token_missing");
 
-    const rawLimit = Number(about.storageQuota?.limit ?? 0);
-    const rawUsage = Number(about.storageQuota?.usage ?? 0);
-    const quotaLimit = Number.isSafeInteger(rawLimit) ? rawLimit : 0;
-    const quotaUsage = Number.isSafeInteger(rawUsage) ? rawUsage : 0;
+    const quotaLimit = safeBytes(about.storageQuota?.limit);
+    const quotaUsage = safeBytes(about.storageQuota?.usage);
+    const quotaUsageInDrive = safeBytes(about.storageQuota?.usageInDrive);
+    const quotaUsageInDriveTrash = safeBytes(about.storageQuota?.usageInDriveTrash);
 
     if (old) {
       await db.update(linkedAccounts).set({
@@ -82,6 +87,8 @@ export async function GET(request: NextRequest) {
         storageFolderId: folderId,
         quotaLimit,
         quotaUsage,
+        quotaUsageInDrive,
+        quotaUsageInDriveTrash,
         status: "healthy",
         updatedAt: new Date(),
       }).where(eq(linkedAccounts.id, old.id));
@@ -98,6 +105,8 @@ export async function GET(request: NextRequest) {
         storageFolderId: folderId,
         quotaLimit,
         quotaUsage,
+        quotaUsageInDrive,
+        quotaUsageInDriveTrash,
       });
     }
 

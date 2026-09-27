@@ -5,6 +5,7 @@ import { chunks, linkedAccounts, logicalFiles } from "@/db/schema";
 import { downloadDriveFile, exportDriveFile } from "@/lib/google/drive";
 import { refreshGoogleAccessToken } from "@/lib/google/oauth";
 import { downloadDropboxFile, getDropboxAccessToken } from "@/lib/providers/dropbox";
+import { downloadTeraBoxFile } from "@/lib/providers/terabox";
 import { decryptSecret } from "@/lib/security/crypto";
 import { unwrapFileKey } from "@/lib/security/file-encryption";
 import { AES_GCM_TAG_BYTES, frameLayout, framesForPlainRange } from "@/lib/storage/encryption-format";
@@ -127,6 +128,9 @@ async function streamEncryptedManaged(file: typeof logicalFiles.$inferSelect, ra
     if (object.provider === "dropbox") {
       const accessToken = await getDropboxAccessToken(account);
       return streamEncryptedFrames(file, rangeHeader, disposition, (start, end) => downloadDropboxFile(accessToken, object.remotePath!, `bytes=${start}-${end}`), "dropbox");
+    }
+    if (object.provider === "terabox") {
+      return streamEncryptedFrames(file, rangeHeader, disposition, (start, end) => downloadTeraBoxFile(account, object.remotePath!, `bytes=${start}-${end}`), "terabox");
     }
     return new Response("Encrypted provider download is not implemented", { status: 501 });
   }
