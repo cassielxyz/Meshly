@@ -96,7 +96,10 @@ export function CloudsView() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void load(true); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(true); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   useEffect(() => {
     if (!teraBoxOpen) return;
