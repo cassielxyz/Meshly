@@ -278,7 +278,7 @@ export async function precreateTeraBoxUpload(account: TeraBoxAccount, path: stri
   return result;
 }
 
-export async function uploadTeraBoxShard(account: TeraBoxAccount, input: { path: string; uploadId: string; part: number; bytes: Uint8Array }) {
+export async function getTeraBoxShardUploadUrl(account: TeraBoxAccount, input: { path: string; uploadId: string; part: number }) {
   const { accessToken, uploadDomain } = await transferContext(account);
   if (!uploadDomain) throw new Error("TeraBox upload domain is unavailable");
   const url = new URL(`${apiBase(uploadDomain)}/rest/2.0/pcs/superfile2`);
@@ -288,6 +288,11 @@ export async function uploadTeraBoxShard(account: TeraBoxAccount, input: { path:
   url.searchParams.set("uploadid", input.uploadId);
   url.searchParams.set("partseq", String(input.part));
   url.searchParams.set("access_tokens", accessToken);
+  return url.toString();
+}
+
+export async function uploadTeraBoxShard(account: TeraBoxAccount, input: { path: string; uploadId: string; part: number; bytes: Uint8Array }) {
+  const url = await getTeraBoxShardUploadUrl(account, input);
   const body = input.bytes.buffer.slice(input.bytes.byteOffset, input.bytes.byteOffset + input.bytes.byteLength) as ArrayBuffer;
   const form = new FormData();
   form.set("file", new Blob([body]), `part-${input.part}.bin`);
