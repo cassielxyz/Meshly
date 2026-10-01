@@ -11,10 +11,15 @@ import {
   refreshTeraBoxAccount,
   TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES,
 } from "@/lib/providers/terabox";
-import { createTeraBoxWorkerToken, getTeraBoxWorkerUrl, isTeraBoxLargeWorkerEnabled } from "@/lib/providers/terabox-worker";
+import {
+  createTeraBoxWorkerToken,
+  getTeraBoxWorkerUrl,
+  isTeraBoxLargeWorkerEnabled,
+  planTeraBoxWorkerParts,
+} from "@/lib/providers/terabox-worker";
 import { createManagedFileEncryption } from "@/lib/security/file-encryption";
 import { AuthError, requireRequestUser } from "@/lib/server/auth";
-import { AES_GCM_TAG_BYTES, frameCount } from "@/lib/storage/encryption-format";
+import { AES_GCM_TAG_BYTES } from "@/lib/storage/encryption-format";
 
 const inputSchema = z.object({
   providerAccountId: z.string().min(1),
@@ -59,8 +64,6 @@ export async function POST(request: NextRequest) {
     const fileId = nanoid();
     const objectId = nanoid();
     const encryption = createManagedFileEncryption(fileId, input.size);
-    const frames = frameCount(input.size, encryption.framePlainBytes);
-    const maxPartBytes = encryption.framePlainBytes + AES_GCM_TAG_BYTES;
     const useWorker = encryption.physicalSize > TERABOX_SERVERLESS_MAX_CIPHERTEXT_BYTES;
     if (useWorker && !isTeraBoxLargeWorkerEnabled()) {
       return NextResponse.json({
@@ -69,6 +72,7 @@ export async function POST(request: NextRequest) {
         message: "This TeraBox upload needs the dedicated large-file transfer worker, which is not enabled on this deployment.",
       }, { status: 413 });
     }
+    const workerPlan = useWorker ? planTeraBoxWorkerParts(encryption.physicalSize) : null;
 
     const preferences = (await db.select().from(userSettings).where(eq(userSettings.userId, userId)).limit(1))[0]?.preferences ?? defaultPreferences;
     const free = Math.max(0, account.quotaLimit - account.quotaUsage);
@@ -109,24 +113,28 @@ export async function POST(request: NextRequest) {
           encryptionVersion: 1,
           transport,
           serverlessSmallFile: !useWorker,
-          ...(useWorker ? { workerFrames: frames, workerMaxPartBytes: maxPartBytes } : {}),
+          ...(workerPlan ? {
+            workerFrames: workerPlan.frames,
+            workerMaxPartBytes: workerPlan.maxPartBytes,
+            workerLastPartBytes: workerPlan.lastPartBytes,
+          } : {}),
         },
       });
     });
 
-    const worker = useWorker ? {
+    const worker = workerPlan ? {
       url: getTeraBoxWorkerUrl(),
       token: createTeraBoxWorkerToken({
         objectId,
         fileId,
         userId,
         physicalSize: encryption.physicalSize,
-        frames,
-        maxPartBytes,
+        frames: workerPlan.frames,
+        maxPartBytes: workerPlan.maxPartBytes,
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
       }),
-      frames,
-      maxPartBytes,
+      frames: workerPlan.frames,
+      maxPartBytes: workerPlan.maxPartBytes,
     } : null;
 
     return NextResponse.json({
