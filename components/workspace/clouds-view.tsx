@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Cloud, ExternalLink, Folder, HardDrive, RefreshCw, ShieldCheck, Trash2, X } from "lucide-react";
+import { Cloud, ExternalLink, Folder, HardDrive, LockKeyhole, RefreshCw, ShieldCheck, Trash2, X } from "lucide-react";
 
 type ProviderAccount = {
   id: string;
@@ -21,7 +21,14 @@ type ProviderAccount = {
 
 type ProviderSummary = {
   accounts: ProviderAccount[];
-  configuration: { dropbox: boolean; terabox: boolean; mega: boolean };
+  configuration: {
+    dropbox: boolean;
+    dropboxManagedUploads: boolean;
+    terabox: boolean;
+    teraboxManagedUploads: boolean;
+    teraboxLargeWorker: boolean;
+    mega: boolean;
+  };
   teraboxAuthorizationUrl: string | null;
 };
 
@@ -153,6 +160,9 @@ export function CloudsView() {
   const externalAccounts = summary?.accounts ?? [];
   const dropboxAccounts = externalAccounts.filter((account) => account.provider === "dropbox");
   const teraBoxAccounts = externalAccounts.filter((account) => account.provider === "terabox");
+  const dropboxWrites = summary?.configuration.dropboxManagedUploads === true;
+  const teraBoxWrites = summary?.configuration.teraboxManagedUploads === true;
+  const teraBoxLarge = summary?.configuration.teraboxLargeWorker === true;
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
@@ -161,7 +171,7 @@ export function CloudsView() {
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Other clouds</div>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Real provider connections, not placeholders.</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-            Dropbox and TeraBox use their official authorization/API flows here. Connected account quota and browsable provider files come from the provider itself. MEGA remains disabled until its official SDK can run in a suitable worker instead of being presented as a working Vercel adapter.
+            Dropbox and TeraBox use their official authorization/API flows here. Connection, quota and browsing are separate from managed-upload activation, so Meshly can expose safe read capabilities without claiming unverified write support. MEGA remains disabled until its official SDK can run in a suitable worker.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -175,26 +185,35 @@ export function CloudsView() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <ProviderCard
           name="Dropbox"
-          state={summary?.configuration.dropbox ? "API ready" : "Needs app credentials"}
-          description="Full Dropbox connection with live account quota and existing-file browsing. Provider writes will use Meshly's encrypted object format before activation."
+          state={summary?.configuration.dropbox ? "Official API configured" : "Needs app credentials"}
+          description="Full Dropbox connection with live account quota and existing-file browsing. Managed writes use Meshly's encrypted object format and remain independently activation-gated."
           accounts={dropboxAccounts}
           connect={summary?.configuration.dropbox ? <a className="btn" href="/api/auth/dropbox/start"><ExternalLink size={15}/>Connect Dropbox</a> : null}
           onBrowse={(account) => void browse(account)}
           onDisconnect={(id) => void disconnect(id)}
+          capabilities={<CapabilityRows rows={[
+            ["Connection & browse", summary?.configuration.dropbox === true],
+            ["Encrypted managed uploads", dropboxWrites],
+          ]}/>} 
         />
         <ProviderCard
           name="TeraBox"
-          state={summary?.configuration.terabox ? "Open Platform ready" : "Needs Open Platform credentials"}
-          description="Official TeraBox Open Platform authorization, live quota and app-space file browsing. Remote transfer concurrency stays conservative."
+          state={summary?.configuration.terabox ? "Official Open Platform configured" : "Needs Open Platform credentials"}
+          description="Official TeraBox authorization, live quota and app-space browsing. Small managed uploads and the dedicated large-file worker have separate fail-closed activation gates."
           accounts={teraBoxAccounts}
           connect={summary?.configuration.terabox && summary.teraboxAuthorizationUrl ? <button className="btn" onClick={() => setTeraBoxOpen(true)}><ExternalLink size={15}/>Connect TeraBox</button> : null}
           onBrowse={(account) => void browse(account)}
           onDisconnect={(id) => void disconnect(id)}
+          capabilities={<CapabilityRows rows={[
+            ["Connection & browse", summary?.configuration.terabox === true],
+            ["Encrypted managed uploads", teraBoxWrites],
+            ["Large-file worker", teraBoxLarge],
+          ]}/>} 
         />
         <div className="mesh-card p-5">
           <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--surface-strong)]"><Cloud size={19}/></div><div><h2 className="font-semibold">MEGA</h2><div className="text-xs text-[var(--muted)]">SDK worker required</div></div></div></div>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">MEGA&apos;s supported integration is its SDK. Meshly will not fake a REST adapter or use scraped endpoints; the provider stays visibly unavailable until an SDK-backed worker is deployed and tested.</p>
-          <div className="mt-4 rounded-2xl bg-[var(--surface-strong)] p-3 text-xs text-[var(--muted)]">Not counted in storage totals and not shown as connected.</div>
+          <CapabilityRows rows={[["Connection & browse", false], ["Encrypted managed uploads", false]]}/>
         </div>
       </div>
 
@@ -235,7 +254,11 @@ export function CloudsView() {
   );
 }
 
-function ProviderCard({ name, state, description, accounts, connect, onBrowse, onDisconnect }: {
+function CapabilityRows({ rows }: { rows: [string, boolean][] }) {
+  return <div className="mt-4 space-y-2 rounded-2xl bg-[var(--surface-strong)] p-3">{rows.map(([label, ready]) => <div key={label} className="flex items-center justify-between gap-3 text-xs"><span className="flex items-center gap-2 text-[var(--muted)]"><LockKeyhole size={13}/>{label}</span><span className={`rounded-full px-2 py-1 font-semibold ${ready ? "bg-green-50 text-green-700" : "bg-[var(--background)] text-[var(--muted)]"}`}>{ready ? "Enabled" : "Locked"}</span></div>)}</div>;
+}
+
+function ProviderCard({ name, state, description, accounts, connect, onBrowse, onDisconnect, capabilities }: {
   name: string;
   state: string;
   description: string;
@@ -243,6 +266,7 @@ function ProviderCard({ name, state, description, accounts, connect, onBrowse, o
   connect: React.ReactNode;
   onBrowse: (account: ProviderAccount) => void;
   onDisconnect: (id: string) => void;
+  capabilities?: React.ReactNode;
 }) {
-  return <div className="mesh-card p-5"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--blue-soft)] text-[var(--blue)]"><Cloud size={19}/></div><div><h2 className="font-semibold">{name}</h2><div className="text-xs text-[var(--muted)]">{state}</div></div></div></div><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{description}</p>{connect && <div className="mt-4">{connect}</div>}<div className="mt-4 space-y-3">{accounts.map((account) => <div key={account.id} className="rounded-2xl border border-[var(--border)] p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold">{account.name || account.email || account.externalAccountId}</div><div className="truncate text-xs text-[var(--muted)]">{account.email || account.status}</div></div><span className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-[10px] font-semibold">{account.status}</span></div><div className="mt-3 text-xs text-[var(--muted)]">{fmt(account.quotaUsage)} used · {fmt(account.free)} free</div><div className="mt-3 flex gap-2"><button className="btn" onClick={() => onBrowse(account)}><Folder size={14}/>Browse</button><button className="btn text-[var(--red)]" onClick={() => onDisconnect(account.id)}><Trash2 size={14}/>Disconnect</button></div>{account.lastError && <div className="mt-2 text-xs text-[var(--red)]">{account.lastError}</div>}</div>)}{accounts.length === 0 && <div className="rounded-2xl bg-[var(--surface-strong)] p-3 text-xs text-[var(--muted)]">No connected {name} account.</div>}</div></div>;
+  return <div className="mesh-card p-5"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--blue-soft)] text-[var(--blue)]"><Cloud size={19}/></div><div><h2 className="font-semibold">{name}</h2><div className="text-xs text-[var(--muted)]">{state}</div></div></div></div><p className="mt-4 text-sm leading-6 text-[var(--muted)]">{description}</p>{capabilities}{connect && <div className="mt-4">{connect}</div>}<div className="mt-4 space-y-3">{accounts.map((account) => <div key={account.id} className="rounded-2xl border border-[var(--border)] p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold">{account.name || account.email || account.externalAccountId}</div><div className="truncate text-xs text-[var(--muted)]">{account.email || account.status}</div></div><span className="rounded-full bg-[var(--surface-strong)] px-2 py-1 text-[10px] font-semibold">{account.status}</span></div><div className="mt-3 text-xs text-[var(--muted)]">{fmt(account.quotaUsage)} used · {fmt(account.free)} free</div><div className="mt-3 flex gap-2"><button className="btn" onClick={() => onBrowse(account)}><Folder size={14}/>Browse</button><button className="btn text-[var(--red)]" onClick={() => onDisconnect(account.id)}><Trash2 size={14}/>Disconnect</button></div>{account.lastError && <div className="mt-2 text-xs text-[var(--red)]">{account.lastError}</div>}</div>)}{accounts.length === 0 && <div className="rounded-2xl bg-[var(--surface-strong)] p-3 text-xs text-[var(--muted)]">No connected {name} account.</div>}</div></div>;
 }

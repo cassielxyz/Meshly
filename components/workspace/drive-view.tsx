@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowUpDown,
+  CheckSquare,
   ChevronRight,
   Download,
   ExternalLink,
@@ -20,6 +22,7 @@ import {
   Plus,
   RotateCcw,
   Share2,
+  Square,
   Star,
   Trash2,
   X,
@@ -52,11 +55,21 @@ type Details = {
   allocation: { part: number; size: number; status: string; accountEmail: string; accountId: string }[];
 };
 type Scope = "folder" | "recent" | "starred" | "trash";
+type SortKey = "name" | "modified" | "size";
+type TypeFilter = "all" | "folders" | "files" | "images" | "documents" | "archives";
+type Density = "comfortable" | "compact";
+
+type SettingsResponse = {
+  preferences?: {
+    defaultView?: "list" | "grid";
+    density?: Density;
+  };
+};
 
 function fileIcon(item: Item) {
   if (item.kind === "folder") return Folder;
   if (item.mimeType.startsWith("image/")) return FileImage;
-  if (item.mimeType.includes("zip") || item.mimeType.includes("archive")) return FileArchive;
+  if (item.mimeType.includes("zip") || item.mimeType.includes("archive") || item.mimeType.includes("compressed")) return FileArchive;
   return FileText;
 }
 function fmtSize(n: number) {
@@ -68,12 +81,23 @@ function fmtSize(n: number) {
 function fmtDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
+function matchesType(item: Item, filter: TypeFilter) {
+  if (filter === "all") return true;
+  if (filter === "folders") return item.kind === "folder";
+  if (filter === "files") return item.kind === "file";
+  if (item.kind === "folder") return false;
+  if (filter === "images") return item.mimeType.startsWith("image/");
+  if (filter === "archives") return item.mimeType.includes("zip") || item.mimeType.includes("archive") || item.mimeType.includes("compressed");
+  if (filter === "documents") return !item.mimeType.startsWith("image/") && !item.mimeType.includes("zip") && !item.mimeType.includes("archive") && !item.mimeType.includes("compressed");
+  return true;
+}
 
 export function DriveView({ parentId = null, scope = "folder", query = "" }: { parentId?: string | null; scope?: Scope; query?: string }) {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<Crumb[]>([{ id: null, name: "My Drive" }]);
   const [grid, setGrid] = useState(false);
+  const [density, setDensity] = useState<Density>("comfortable");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menu, setMenu] = useState<string | null>(null);
@@ -83,6 +107,15 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
   const [moveItem, setMoveItem] = useState<Item | null>(null);
   const [folders, setFolders] = useState<Item[]>([]);
   const [busy, setBusy] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDescending, setSortDescending] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [shareItem, setShareItem] = useState<Item | null>(null);
+  const [sharePassword, setSharePassword] = useState("");
+  const [shareExpires, setShareExpires] = useState("168");
+  const [shareMaxDownloads, setShareMaxDownloads] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ scope: query ? "all" : scope });
@@ -99,6 +132,7 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
       const data = (await response.json()) as { items: Item[]; breadcrumbs: Crumb[] };
       setItems(data.items);
       setBreadcrumbs(data.breadcrumbs);
+      setSelected((current) => new Set([...current].filter((id) => data.items.some((item) => item.id === id))));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load files");
     } finally {
@@ -115,6 +149,38 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
       window.removeEventListener("meshly:refresh", refresh);
     };
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/settings", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((value) => {
+        if (cancelled || !value) return;
+        const settings = value as SettingsResponse;
+        setGrid(settings.preferences?.defaultView === "grid");
+        setDensity(settings.preferences?.density === "compact" ? "compact" : "comfortable");
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  const visibleItems = useMemo(() => {
+    const result = items.filter((item) => matchesType(item, typeFilter));
+    result.sort((a, b) => {
+      let comparison = 0;
+      if (sortKey === "name") comparison = a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+      if (sortKey === "modified") comparison = new Date(a.modifiedAt).getTime() - new Date(b.modifiedAt).getTime();
+      if (sortKey === "size") comparison = a.size - b.size;
+      if (a.kind !== b.kind && scope === "folder" && !query) comparison = a.kind === "folder" ? -1 : 1;
+      return sortDescending ? -comparison : comparison;
+    });
+    return result;
+  }, [items, query, scope, sortDescending, sortKey, typeFilter]);
+
+  const foldersHere = scope === "folder" && !query ? visibleItems.filter((item) => item.kind === "folder") : [];
+  const files = scope === "folder" && !query ? visibleItems.filter((item) => item.kind !== "folder") : visibleItems;
+  const selectedItems = items.filter((item) => selected.has(item.id));
+  const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selected.has(item.id));
 
   async function patch(item: Item, body: Record<string, unknown>) {
     setBusy(item.id);
@@ -157,16 +223,43 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
     const response = await fetch(`/api/items/${item.id}`);
     if (response.ok) setDetails((await response.json()) as Details);
   }
-  async function share(item: Item) {
+  function share(item: Item) {
     setMenu(null);
-    const password = prompt("Optional password for this share link. Leave blank for no password.", "");
-    if (password === null) return;
-    const response = await fetch("/api/shares", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileId: item.id, password: password || null, expiresHours: 168 }) });
-    if (!response.ok) return alert("Unable to create share link.");
+    setShareItem(item);
+    setSharePassword("");
+    setShareExpires("168");
+    setShareMaxDownloads("");
+    setShareMessage("");
+  }
+  async function createShare() {
+    if (!shareItem) return;
+    if (sharePassword && sharePassword.length < 4) {
+      setShareMessage("Passwords must be at least 4 characters.");
+      return;
+    }
+    const maxDownloads = shareMaxDownloads.trim() ? Number(shareMaxDownloads) : null;
+    if (maxDownloads !== null && (!Number.isInteger(maxDownloads) || maxDownloads < 1)) {
+      setShareMessage("Download limit must be a positive whole number.");
+      return;
+    }
+    setBusy("share");
+    setShareMessage("Creating protected Meshly link…");
+    const expiresHours = shareExpires === "never" ? null : Number(shareExpires);
+    const response = await fetch("/api/shares", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileId: shareItem.id, password: sharePassword || null, expiresHours, maxDownloads }),
+    });
+    if (!response.ok) {
+      setBusy("");
+      setShareMessage("Unable to create share link.");
+      return;
+    }
     const data = (await response.json()) as { url: string };
     const url = `${window.location.origin}${data.url}`;
-    await navigator.clipboard.writeText(url).catch(() => undefined);
-    prompt("Share link copied", url);
+    const copied = await navigator.clipboard.writeText(url).then(() => true).catch(() => false);
+    setBusy("");
+    setShareMessage(copied ? "Link copied to clipboard." : `Share link: ${url}`);
   }
   async function startMove(item: Item) {
     setMenu(null);
@@ -177,7 +270,7 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
     setMoveItem(item);
   }
   async function permanent(item: Item) {
-    if (!confirm(`Permanently delete “${item.name}”? This removes its physical Drive chunks and cannot be undone.`)) return;
+    if (!confirm(`Permanently delete “${item.name}”? This removes the managed provider object and cannot be undone.`)) return;
     setBusy(item.id);
     try {
       const response = await fetch(`/api/items/${item.id}`, { method: "DELETE" });
@@ -185,6 +278,11 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
         const data = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "Delete failed");
       }
+      setSelected((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
       await load();
     } catch (cause) {
       alert(cause instanceof Error ? cause.message : "Delete failed");
@@ -193,15 +291,65 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
     }
   }
 
+  function toggleSelected(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleAllVisible() {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) visibleItems.forEach((item) => next.delete(item.id));
+      else visibleItems.forEach((item) => next.add(item.id));
+      return next;
+    });
+  }
+  async function bulkPatch(op: "star" | "trash" | "restore") {
+    const targets = selectedItems.filter((item) => op === "star" || item.sourceKind === "managed");
+    if (!targets.length) return;
+    if (op === "trash" && !confirm(`Move ${targets.length} selected item(s) to trash?`)) return;
+    setBusy("bulk");
+    const responses = await Promise.all(targets.map((item) => fetch(`/api/items/${item.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(op === "star" ? { op: "star", starred: true } : { op }),
+    })));
+    setBusy("");
+    if (responses.some((response) => !response.ok)) alert("Some selected items could not be updated.");
+    setSelected(new Set());
+    await load();
+  }
+  async function bulkPermanentDelete() {
+    const targets = selectedItems.filter((item) => item.sourceKind === "managed" && item.trashedAt);
+    if (!targets.length || !confirm(`Permanently delete ${targets.length} selected item(s)? This cannot be undone.`)) return;
+    setBusy("bulk");
+    const responses = await Promise.all(targets.map((item) => fetch(`/api/items/${item.id}`, { method: "DELETE" })));
+    setBusy("");
+    if (responses.some((response) => !response.ok)) alert("Some selected items could not be permanently deleted.");
+    setSelected(new Set());
+    await load();
+  }
+
   const title = query ? `Search results for “${query}”` : scope === "recent" ? "Recent" : scope === "starred" ? "Starred" : scope === "trash" ? "Trash" : "My Drive";
-  const foldersHere = scope === "folder" && !query ? items.filter((item) => item.kind === "folder") : [];
-  const files = scope === "folder" && !query ? items.filter((item) => item.kind !== "folder") : items;
+  const rowPadding = density === "compact" ? "py-2" : "py-3";
+
+  function SelectButton({ item }: { item: Item }) {
+    const active = selected.has(item.id);
+    return <button
+      type="button"
+      aria-label={`${active ? "Deselect" : "Select"} ${item.name}`}
+      onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleSelected(item.id); }}
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition ${active ? "text-[var(--blue)]" : "text-[var(--muted)] hover:bg-[var(--surface)]"}`}
+    >{active ? <CheckSquare size={18}/> : <Square size={18}/>}</button>;
+  }
 
   function itemMenu(item: Item) {
     const external = item.sourceKind === "external";
     return <div className="absolute right-0 top-10 z-30 w-52 rounded-xl border border-[var(--border)] bg-[var(--background)] p-1.5 text-sm shadow-xl">
       {external && item.sourceWebViewLink && <a target="_blank" rel="noreferrer" href={item.sourceWebViewLink} className="menu-item"><ExternalLink size={15}/>Open in Google Drive</a>}
-      {item.kind === "file" && <><button onClick={() => window.open(`/api/files/${item.id}/preview`, "_blank")} className="menu-item"><Eye size={15}/>Preview</button><a href={`/api/files/${item.id}/download`} className="menu-item"><Download size={15}/>Download</a><button onClick={() => void share(item)} className="menu-item"><Share2 size={15}/>Share</button></>}
+      {item.kind === "file" && <><button onClick={() => window.open(`/api/files/${item.id}/preview`, "_blank")} className="menu-item"><Eye size={15}/>Preview</button><a href={`/api/files/${item.id}/download`} className="menu-item"><Download size={15}/>Download</a><button onClick={() => share(item)} className="menu-item"><Share2 size={15}/>Share</button></>}
       {!item.trashedAt && !external && <><button onClick={() => void rename(item)} className="menu-item">Rename</button><button onClick={() => void startMove(item)} className="menu-item"><Move size={15}/>Move</button></>}
       {!item.trashedAt && <button onClick={() => void patch(item, { op: "star", starred: !item.starred })} className="menu-item"><Star size={15}/>{item.starred ? "Unstar" : "Star"}</button>}
       {!item.trashedAt && !external && <button onClick={() => void patch(item, { op: "trash" })} className="menu-item text-[var(--red)]"><Trash2 size={15}/>Move to trash</button>}
@@ -211,19 +359,53 @@ export function DriveView({ parentId = null, scope = "folder", query = "" }: { p
   }
 
   return <div className="min-h-[calc(100vh-64px)] p-4 sm:p-6">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-medium">{title}</h1>{scope === "folder" && !query && <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">{breadcrumbs.map((crumb, index) => <span className="flex items-center gap-1" key={crumb.id ?? "root"}>{index > 0 && <ChevronRight size={13}/>}<Link className="rounded px-1 py-0.5 hover:bg-[var(--background)]" href={crumb.id ? `/drive/${crumb.id}` : "/drive"}>{crumb.name}</Link></span>)}</div>}</div><div className="flex items-center gap-2">{scope === "folder" && !query && <button onClick={() => setCreateOpen(true)} className="btn"><Plus size={17}/>New folder</button>}<div className="flex items-center rounded-full border border-[var(--border)] bg-[var(--background)] p-1"><button aria-label="List view" onClick={() => setGrid(false)} className={`grid h-8 w-10 place-items-center rounded-full ${!grid ? "bg-[var(--surface-strong)]" : ""}`}><List size={17}/></button><button aria-label="Grid view" onClick={() => setGrid(true)} className={`grid h-8 w-10 place-items-center rounded-full ${grid ? "bg-[var(--surface-strong)]" : ""}`}><Grid2X2 size={17}/></button></div></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 className="text-2xl font-medium">{title}</h1>
+        {scope === "folder" && !query && <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-[var(--muted)]">{breadcrumbs.map((crumb, index) => <span className="flex items-center gap-1" key={crumb.id ?? "root"}>{index > 0 && <ChevronRight size={13}/>}<Link className="rounded px-1 py-0.5 hover:bg-[var(--background)]" href={crumb.id ? `/drive/${crumb.id}` : "/drive"}>{crumb.name}</Link></span>)}</div>}
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {scope === "folder" && !query && <button onClick={() => setCreateOpen(true)} className="btn"><Plus size={17}/>New folder</button>}
+        <select aria-label="Filter items" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as TypeFilter)} className="rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs">
+          <option value="all">All types</option><option value="folders">Folders</option><option value="files">Files</option><option value="images">Images</option><option value="documents">Documents</option><option value="archives">Archives</option>
+        </select>
+        <select aria-label="Sort items" value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)} className="rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs">
+          <option value="name">Name</option><option value="modified">Modified</option><option value="size">Size</option>
+        </select>
+        <button aria-label={sortDescending ? "Sort ascending" : "Sort descending"} onClick={() => setSortDescending((value) => !value)} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-[var(--background)]"><ArrowUpDown size={16}/></button>
+        <div className="flex items-center rounded-full border border-[var(--border)] bg-[var(--background)] p-1"><button aria-label="List view" onClick={() => setGrid(false)} className={`grid h-8 w-10 place-items-center rounded-full ${!grid ? "bg-[var(--surface-strong)]" : ""}`}><List size={17}/></button><button aria-label="Grid view" onClick={() => setGrid(true)} className={`grid h-8 w-10 place-items-center rounded-full ${grid ? "bg-[var(--surface-strong)]" : ""}`}><Grid2X2 size={17}/></button></div>
+      </div>
+    </div>
+
+    {!loading && visibleItems.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs">
+      <button onClick={toggleAllVisible} className="btn">{allVisibleSelected ? "Clear visible" : "Select visible"}</button>
+      <span className="text-[var(--muted)]">{selected.size ? `${selected.size} selected` : `${visibleItems.length} shown`}</span>
+      {selected.size > 0 && <>
+        {scope === "trash" ? <>
+          <button disabled={busy === "bulk"} onClick={() => void bulkPatch("restore")} className="btn"><RotateCcw size={14}/>Restore</button>
+          <button disabled={busy === "bulk"} onClick={() => void bulkPermanentDelete()} className="btn text-[var(--red)]"><Trash2 size={14}/>Delete forever</button>
+        </> : <>
+          <button disabled={busy === "bulk"} onClick={() => void bulkPatch("star")} className="btn"><Star size={14}/>Star</button>
+          <button disabled={busy === "bulk"} onClick={() => void bulkPatch("trash")} className="btn text-[var(--red)]"><Trash2 size={14}/>Trash</button>
+        </>}
+        <button onClick={() => setSelected(new Set())} className="rounded-full px-3 py-2 font-semibold text-[var(--muted)]">Clear selection</button>
+      </>}
+    </div>}
+
     {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error} <button onClick={() => void load()} className="font-semibold underline">Retry</button></div>}
     {loading && <div className="mt-12 text-center text-sm text-[var(--muted)]">Loading your workspace…</div>}
-    {!loading && !error && items.length === 0 && <div className="mt-16 text-center"><Folder size={42} className="mx-auto text-[var(--muted)]"/><h2 className="mt-4 font-medium">Nothing here yet</h2><p className="mt-1 text-sm text-[var(--muted)]">Upload files, create a folder, or index a Full Drive account.</p></div>}
+    {!loading && !error && visibleItems.length === 0 && <div className="mt-16 text-center"><Folder size={42} className="mx-auto text-[var(--muted)]"/><h2 className="mt-4 font-medium">Nothing here yet</h2><p className="mt-1 text-sm text-[var(--muted)]">{typeFilter === "all" ? "Upload files, create a folder, or index a Full Drive account." : "No items match the selected filter."}</p></div>}
 
-    {!loading && foldersHere.length > 0 && <><h2 className="mt-7 text-sm font-semibold">Folders</h2><div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{foldersHere.map((item) => <article key={item.id} className="mesh-card relative flex items-center gap-3 p-4"><Link href={`/drive/${item.id}`} className="flex min-w-0 flex-1 items-center gap-3"><Folder className="fill-[#5f6368] text-[#5f6368]" size={22}/><div className="min-w-0"><div className="flex items-center gap-2"><span className="truncate text-sm font-medium">{item.name}</span>{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">Google</span>}</div><div className="mt-1 text-xs text-[var(--muted)]">Updated {fmtDate(item.modifiedAt)}</div></div></Link><button aria-label="Folder actions" disabled={busy === item.id} onClick={() => setMenu(menu === item.id ? null : item.id)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</article>)}</div></>}
+    {!loading && foldersHere.length > 0 && <><h2 className="mt-7 text-sm font-semibold">Folders</h2><div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{foldersHere.map((item) => <article key={item.id} className={`mesh-card relative flex items-center gap-2 p-3 ${selected.has(item.id) ? "ring-2 ring-[var(--blue)]" : ""}`}><SelectButton item={item}/><Link href={`/drive/${item.id}`} className="flex min-w-0 flex-1 items-center gap-3"><Folder className="fill-[#5f6368] text-[#5f6368]" size={22}/><div className="min-w-0"><div className="flex items-center gap-2"><span className="truncate text-sm font-medium">{item.name}</span>{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">Google</span>}</div><div className="mt-1 text-xs text-[var(--muted)]">Updated {fmtDate(item.modifiedAt)}</div></div></Link><button aria-label="Folder actions" disabled={busy === item.id} onClick={() => setMenu(menu === item.id ? null : item.id)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</article>)}</div></>}
 
-    {!loading && files.length > 0 && <><h2 className="mt-8 text-sm font-semibold">{scope === "folder" && !query ? "Files" : "Items"}</h2>{grid ? <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{files.map((item) => { const Icon = fileIcon(item); return <article key={item.id} className="mesh-card relative p-3"><div className="flex items-center gap-2"><Icon size={18}/><div className="truncate text-sm font-medium">{item.name}</div>{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--blue)]">G</span>}<button onClick={() => setMenu(menu === item.id ? null : item.id)} className="ml-auto grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</div><button onClick={() => item.kind === "folder" ? router.push(`/drive/${item.id}`) : window.open(`/api/files/${item.id}/preview`, "_blank")} className="mt-3 grid aspect-[16/10] w-full place-items-center rounded-xl bg-[var(--surface-strong)]"><Icon size={42} className="text-[var(--muted)]"/></button><div className="mt-3 flex justify-between gap-2 text-xs text-[var(--muted)]"><span>{item.kind === "folder" ? "Folder" : fmtSize(item.size)}</span><span className="truncate">{fmtDate(item.modifiedAt)}</span></div></article>; })}</div> : <div className="mesh-card mt-3 overflow-visible"><div className="hidden grid-cols-[minmax(220px,2fr)_110px_170px_48px] gap-3 border-b border-[var(--border)] px-4 py-3 text-xs font-semibold text-[var(--muted)] md:grid"><span>Name</span><span>Size</span><span>Modified</span><span/></div>{files.map((item) => { const Icon = fileIcon(item); return <div key={item.id} className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-[var(--border)] px-4 py-3 last:border-0 md:grid-cols-[minmax(220px,2fr)_110px_170px_48px]"><div className="flex min-w-0 items-center gap-3">{item.starred && <Star size={13} className="fill-[var(--yellow)] text-[var(--yellow)]"/>}<Icon size={20} className="shrink-0 text-[var(--muted)]"/>{item.kind === "folder" ? <Link href={`/drive/${item.id}`} className="truncate text-sm font-medium hover:underline">{item.name}</Link> : <button onClick={() => void showDetails(item)} className="truncate text-left text-sm font-medium hover:underline">{item.name}</button>}{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">Google</span>}</div><div className="hidden text-xs text-[var(--muted)] md:block">{item.kind === "folder" ? "—" : fmtSize(item.size)}</div><div className="hidden text-xs text-[var(--muted)] md:block">{fmtDate(item.modifiedAt)}</div><button aria-label={`More actions for ${item.name}`} onClick={() => setMenu(menu === item.id ? null : item.id)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</div>; })}</div>}</>}
+    {!loading && files.length > 0 && <><h2 className="mt-8 text-sm font-semibold">{scope === "folder" && !query ? "Files" : "Items"}</h2>{grid ? <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{files.map((item) => { const Icon = fileIcon(item); return <article key={item.id} className={`mesh-card relative p-3 ${selected.has(item.id) ? "ring-2 ring-[var(--blue)]" : ""}`}><div className="flex items-center gap-2"><SelectButton item={item}/><Icon size={18}/><div className="truncate text-sm font-medium">{item.name}</div>{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--blue)]">G</span>}<button onClick={() => setMenu(menu === item.id ? null : item.id)} className="ml-auto grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</div><button onClick={() => item.kind === "folder" ? router.push(`/drive/${item.id}`) : window.open(`/api/files/${item.id}/preview`, "_blank")} className="mt-3 grid aspect-[16/10] w-full place-items-center rounded-xl bg-[var(--surface-strong)]"><Icon size={42} className="text-[var(--muted)]"/></button><div className="mt-3 flex justify-between gap-2 text-xs text-[var(--muted)]"><span>{item.kind === "folder" ? "Folder" : fmtSize(item.size)}</span><span className="truncate">{fmtDate(item.modifiedAt)}</span></div></article>; })}</div> : <div className="mesh-card mt-3 overflow-visible"><div className="hidden grid-cols-[40px_minmax(220px,2fr)_110px_170px_48px] gap-3 border-b border-[var(--border)] px-4 py-3 text-xs font-semibold text-[var(--muted)] md:grid"><button aria-label="Select all visible items" onClick={toggleAllVisible}>{allVisibleSelected ? <CheckSquare size={17}/> : <Square size={17}/>}</button><span>Name</span><span>Size</span><span>Modified</span><span/></div>{files.map((item) => { const Icon = fileIcon(item); return <div key={item.id} className={`relative grid grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-2 border-b border-[var(--border)] px-3 ${rowPadding} last:border-0 md:grid-cols-[40px_minmax(220px,2fr)_110px_170px_48px] ${selected.has(item.id) ? "bg-[var(--blue-soft)]" : ""}`}><SelectButton item={item}/><div className="flex min-w-0 items-center gap-3">{item.starred && <Star size={13} className="fill-[var(--yellow)] text-[var(--yellow)]"/>}<Icon size={20} className="shrink-0 text-[var(--muted)]"/>{item.kind === "folder" ? <Link href={`/drive/${item.id}`} className="truncate text-sm font-medium hover:underline">{item.name}</Link> : <button onClick={() => void showDetails(item)} className="truncate text-left text-sm font-medium hover:underline">{item.name}</button>}{item.sourceKind === "external" && <span className="rounded-full bg-[var(--blue-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--blue)]">Google</span>}</div><div className="hidden text-xs text-[var(--muted)] md:block">{item.kind === "folder" ? "—" : fmtSize(item.size)}</div><div className="hidden text-xs text-[var(--muted)] md:block">{fmtDate(item.modifiedAt)}</div><button aria-label={`More actions for ${item.name}`} onClick={() => setMenu(menu === item.id ? null : item.id)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-[var(--surface)]"><MoreVertical size={17}/></button>{menu === item.id && itemMenu(item)}</div>; })}</div>}</>}
 
     {createOpen && <div className="fixed inset-0 z-[80] grid place-items-center bg-black/30 p-4"><div className="w-full max-w-sm rounded-2xl bg-[var(--background)] p-5 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-semibold">New folder</h2><button onClick={() => setCreateOpen(false)}><X size={18}/></button></div><input autoFocus value={folderName} onChange={(event) => setFolderName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void createFolder()} className="mt-4 w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 outline-none focus:border-[var(--blue)]" placeholder="Folder name"/><div className="mt-4 flex justify-end gap-2"><button onClick={() => setCreateOpen(false)} className="rounded-full px-4 py-2 text-sm">Cancel</button><button disabled={!folderName.trim() || busy === "create"} onClick={() => void createFolder()} className="rounded-full bg-[var(--blue)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Create</button></div></div></div>}
 
-    {details && <div className="fixed inset-y-0 right-0 z-[75] w-full max-w-md overflow-auto border-l border-[var(--border)] bg-[var(--background)] p-5 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-semibold">File details</h2><button onClick={() => setDetails(null)}><X size={20}/></button></div><h3 className="mt-6 break-words text-lg font-medium">{details.item.name}</h3><dl className="mt-5 grid grid-cols-[120px_1fr] gap-y-3 text-sm"><dt className="text-[var(--muted)]">Source</dt><dd>{details.item.sourceKind === "external" ? "Indexed Google Drive" : "Meshly managed"}</dd><dt className="text-[var(--muted)]">Type</dt><dd>{details.item.sourceMimeType ?? details.item.mimeType}</dd><dt className="text-[var(--muted)]">Size</dt><dd>{fmtSize(details.item.size)}</dd><dt className="text-[var(--muted)]">Status</dt><dd className="capitalize">{details.item.status}</dd><dt className="text-[var(--muted)]">Modified</dt><dd>{fmtDate(details.item.modifiedAt)}</dd><dt className="text-[var(--muted)]">SHA-256</dt><dd className="break-all font-mono text-xs">{details.item.sha256 ?? "—"}</dd></dl>{details.item.sourceWebViewLink && <a target="_blank" rel="noreferrer" href={details.item.sourceWebViewLink} className="btn mt-5"><ExternalLink size={15}/>Open source</a>}{details.allocation.length > 0 && <><h4 className="mt-7 text-sm font-semibold">Physical allocation</h4><div className="mt-2 space-y-2">{details.allocation.map((allocation) => <div key={`${allocation.accountId}-${allocation.part}`} className="rounded-xl bg-[var(--surface)] p-3 text-xs"><div className="font-medium">Part {allocation.part + 1} · {fmtSize(allocation.size)}</div><div className="mt-1 text-[var(--muted)]">{allocation.accountEmail} · {allocation.status}</div></div>)}</div></>}</div>}
+    {details && <div className="fixed inset-y-0 right-0 z-[75] w-full max-w-md overflow-auto border-l border-[var(--border)] bg-[var(--background)] p-5 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-semibold">File details</h2><button onClick={() => setDetails(null)}><X size={20}/></button></div><h3 className="mt-6 break-words text-lg font-medium">{details.item.name}</h3><dl className="mt-5 grid grid-cols-[120px_1fr] gap-y-3 text-sm"><dt className="text-[var(--muted)]">Source</dt><dd>{details.item.sourceKind === "external" ? "Indexed Google Drive" : "Meshly managed"}</dd><dt className="text-[var(--muted)]">Type</dt><dd>{details.item.sourceMimeType ?? details.item.mimeType}</dd><dt className="text-[var(--muted)]">Size</dt><dd>{fmtSize(details.item.size)}</dd><dt className="text-[var(--muted)]">Status</dt><dd className="capitalize">{details.item.status}</dd><dt className="text-[var(--muted)]">Modified</dt><dd>{fmtDate(details.item.modifiedAt)}</dd><dt className="text-[var(--muted)]">SHA-256</dt><dd className="break-all font-mono text-xs">{details.item.sha256 ?? "—"}</dd></dl>{details.item.sourceWebViewLink && <a target="_blank" rel="noreferrer" href={details.item.sourceWebViewLink} className="btn mt-5"><ExternalLink size={15}/>Open source</a>}{details.allocation.length > 0 && <><h4 className="mt-7 text-sm font-semibold">Stored objects</h4><div className="mt-2 space-y-2">{details.allocation.map((allocation) => <div key={`${allocation.accountId}-${allocation.part}`} className="rounded-xl bg-[var(--surface)] p-3 text-xs"><div className="font-medium">Object {allocation.part + 1} · {fmtSize(allocation.size)}</div><div className="mt-1 text-[var(--muted)]">{allocation.accountEmail} · {allocation.status}</div></div>)}</div></>}</div>}
 
     {moveItem && <div className="fixed inset-0 z-[85] grid place-items-center bg-black/30 p-4"><div className="max-h-[70vh] w-full max-w-md overflow-auto rounded-2xl bg-[var(--background)] p-5 shadow-2xl"><div className="flex items-center justify-between"><h2 className="font-semibold">Move “{moveItem.name}”</h2><button onClick={() => setMoveItem(null)}><X size={18}/></button></div><button onClick={() => { void patch(moveItem, { op: "move", parentId: null }); setMoveItem(null); }} className="mt-4 w-full rounded-xl px-3 py-3 text-left hover:bg-[var(--surface)]">My Drive</button>{folders.map((folder) => <button key={folder.id} onClick={() => { void patch(moveItem, { op: "move", parentId: folder.id }); setMoveItem(null); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-3 text-left hover:bg-[var(--surface)]"><Folder size={17}/>{folder.name}</button>)}</div></div>}
+
+    {shareItem && <div className="fixed inset-0 z-[90] grid place-items-center bg-black/30 p-4"><div className="w-full max-w-md rounded-2xl bg-[var(--background)] p-5 shadow-2xl"><div className="flex items-center justify-between"><div><h2 className="font-semibold">Share “{shareItem.name}”</h2><p className="mt-1 text-xs text-[var(--muted)]">Create a revocable Meshly link without exposing provider credentials.</p></div><button onClick={() => setShareItem(null)}><X size={19}/></button></div><label className="mt-5 block text-xs font-semibold">Password <span className="font-normal text-[var(--muted)]">(optional)</span><input value={sharePassword} onChange={(event) => setSharePassword(event.target.value)} type="password" minLength={4} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-sm" placeholder="At least 4 characters"/></label><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Expires<select value={shareExpires} onChange={(event) => setShareExpires(event.target.value)} className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"><option value="24">24 hours</option><option value="168">7 days</option><option value="720">30 days</option><option value="8760">1 year</option><option value="never">Never</option></select></label><label className="text-xs font-semibold">Download limit <span className="font-normal text-[var(--muted)]">(optional)</span><input value={shareMaxDownloads} onChange={(event) => setShareMaxDownloads(event.target.value)} inputMode="numeric" type="number" min="1" max="1000000" className="mt-2 w-full rounded-xl border border-[var(--border)] bg-transparent px-3 py-2 text-sm" placeholder="Unlimited"/></label></div>{shareMessage && <div className="mt-4 break-all rounded-xl bg-[var(--surface)] px-3 py-2 text-xs">{shareMessage}</div>}<div className="mt-5 flex justify-end gap-2"><button onClick={() => setShareItem(null)} className="rounded-full px-4 py-2 text-sm">Close</button><button disabled={busy === "share"} onClick={() => void createShare()} className="rounded-full bg-[var(--blue)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Share2 size={15} className="mr-1 inline"/>{busy === "share" ? "Creating…" : "Create link"}</button></div></div></div>}
   </div>;
 }
