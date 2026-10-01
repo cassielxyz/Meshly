@@ -2,67 +2,64 @@
 
 > **READ THIS BEFORE CONTINUING.** Also read `AGENTS.md`, `HANDOFF.md`, `NEXT_ACTION.md`, `.meshly/project-state.json`, `.meshly/current-task.json`, `.meshly/resume-state.json`, and the newest file under `docs/checkpoints/`. Newer repository commits and live deployment state always win over this document.
 
-**Checkpoint date:** 2026-09-28  
+**Checkpoint date:** 2026-10-02  
 **Repository:** `cassielxyz/Meshly`  
 **Branch:** `main`  
-**Current main commit:** `a74596ae8a12c4c9025914112807162e9af17cce`  
-**Latest verified runtime commit:** `9018491a83d9663dc09b32c9889c3133cac15e01`  
-**Latest verified implementation CI run:** `36344842001`  
-**Verified production deployment:** `dpl_4yceJJbueyJS978P2sviWdPkQ2By`  
-**Latest verified production milestone record:** `docs/checkpoints/2026-09-28-dropbox-transfer-foundation-deployed.md`
+**Current main / latest verified runtime commit:** `069878312a9409148dde34fad031b4ff5c7fee6d`  
+**Latest verified implementation CI run:** `36919473571` (PR #16 exact head `7cf7b84ed7eea07c99b5ed62a0ad59d0c77a529f`)  
+**Verified production deployment:** `dpl_9uUDaEdaNxXkGDPGtRYUkY2bkGzb`  
+**Latest verified production milestone record:** `docs/checkpoints/2026-10-02-workspace-terabox-worker-deployed.md`
 
 ## Current state
 
-Meshly production at `https://meshly.cassielae.me` is still serving the last verified runtime `9018491a83d9663dc09b32c9889c3133cac15e01`. Its live readiness is HTTP 200 with environment, PostgreSQL connectivity, migrations, managed encryption schema v1 and provider-object schema v2 verified.
+Meshly production at `https://meshly.cassielae.me` is serving main `069878312a9409148dde34fad031b4ff5c7fee6d`. The deployment is **READY** and live `/api/readiness` returns HTTP 200 with environment, database and migrations true, `encryptionSchema: "v1"`, `providerSchema: "v2"` and `googleQuotaSchema: "v2"`.
 
-PR #14 was exact-head CI verified and squash-merged into main as `a74596ae8a12c4c9025914112807162e9af17cce`. That merged code contains Google quota-category correction/migration `0008` plus the activation-gated encrypted TeraBox small-file foundation.
+The old Vercel build-rate blocker is cleared. Migration `0008_google_quota_breakdown.sql` and the Google quota-category model are live. PR #16 was exact-head CI verified, squash-merged, deployed, and adds the completed core workspace UX plus the activation-gated TeraBox large-file ciphertext worker foundation.
 
-**PR #14 is not production-deployed yet.** Vercel reported `Deployment rate limited — retry in 24 hours` for main `a74596ae8a12c4c9025914112807162e9af17cce`. Therefore migration `0008` and `googleQuotaSchema: "v2"` must not be called live or production-verified yet.
+Google supports narrow managed mode plus a targeted **Show existing files** upgrade using read-only Drive access. A real user-completed broader-read consent and initial index is still required before claiming that pre-existing Drive files are verified in production. Exact quota values also still need browser-visible comparison against Google for the connected account.
 
-Google supports narrow managed mode plus a targeted **Show existing files** upgrade using read-only Drive access. A user-completed consent/indexing test is still required before claiming that pre-existing Drive files are verified in production.
+Dropbox and TeraBox connection/browse foundations are implemented. Their encrypted managed-upload paths remain feature-gated until real provider-specific live verification passes. The TeraBox large-file worker code is deployed but intentionally inactive until its separate worker deployment and real provider round-trip are verified.
 
 Do **not** call Meshly `production_verified` yet.
 
-## Completed in code
+## Completed in code and deployed
 
-- Responsive logical filesystem and core file/account flows.
+- Responsive logical filesystem, bulk file actions, filters, sorting, saved list/grid view and density.
+- Richer share creation with optional password, expiry and download limits.
+- Download activity/history and bounded workspace Analytics.
 - Managed Google OAuth plus targeted optional Full Drive indexing (`drive.readonly` + `drive.file` + `drive.appdata`).
-- Per-account Google quota refresh and live refresh controls.
-- Google quota model/reporting that separately represents total Google usage, Drive usage and Drive-trash usage; production migration `0008` still awaits a successful deployment.
+- Per-account Google quota refresh and quota breakdown for total Google usage, Drive usage and Drive-trash usage.
 - Google whole-file-only Auto/manual placement.
 - Mandatory managed encryption v1 with opaque remote objects.
-- Provider-account persistence and official Dropbox/TeraBox auth/quota/browse foundations.
-- `provider_objects` persistence via migration `0007_provider_objects.sql`.
-- Activation-gated encrypted Dropbox managed uploads using Meshly encryption v1.
-- Dropbox upload-session offset reconciliation, encrypted ranged download/decrypt, remote verification before ready, permanent-delete/disconnect guards, provider integrity checks and recovery-manifest v3 integration.
-- Activation-gated TeraBox encrypted small-file planning/upload/verification/download/decrypt/abort/delete with retry-safe precreate handling and remote size/available-MD5 checks.
-- User-facing provider upload controls that stay hidden unless the corresponding managed-upload safety gate is enabled.
-- TeraBox serverless path intentionally limited to <= 3 MiB ciphertext; large-file transfer still requires a dedicated worker.
-- Other Clouds UI backed by actual provider state instead of static placeholders.
-- MEGA explicitly held behind an official SDK-backed worker.
+- Provider-account persistence plus official Dropbox/TeraBox auth, quota and browse foundations.
+- Activation-gated encrypted Dropbox managed uploads with resumable offset reconciliation, encrypted ranged download/decrypt, remote verification, integrity/delete/recovery integration.
+- Activation-gated encrypted TeraBox small-file planning/upload/verification/download/decrypt/abort/delete.
+- Dedicated activation-gated TeraBox large-file worker architecture: ciphertext-only browser-to-worker transport, scoped HMAC capability, authenticated app/worker control plane, temporary ciphertext cleanup and provider-part verification.
+- TeraBox provider transport parts are independent from Meshly encryption-frame boundaries. Multipart layouts guarantee every provider fragment, including the final fragment, is greater than 4 MiB and unsafe layouts fail closed.
+- Other Clouds UI backed by provider state rather than static placeholders.
+- MEGA remains explicitly unavailable until an official SDK-backed worker is implemented.
 - Public multicloud/encryption landing, legal pages, strict production environment validation and production-only checksum-verified migrations.
 - Durable canonical + active-work checkpoint layers.
 
 ## Verification already completed
 
-PR #14 head `528ed99e9f519005e6ed2b3e25c907d921edd417` passed GitHub Actions run `36344842001`: frozen install, checkpoint validation, production dependency audit, lint, strict TypeScript, tests and production build. No unresolved review threads were present before merge.
+PR #16 exact head `7cf7b84ed7eea07c99b5ed62a0ad59d0c77a529f` passed GitHub Actions run `36919473571`: frozen dependency install, checkpoint validation, production dependency audit, lint, strict TypeScript, Vitest and production build.
 
-Main commit `9018491a83d9663dc09b32c9889c3133cac15e01` remains the last verified production runtime and is deployed as `dpl_4yceJJbueyJS978P2sviWdPkQ2By`, state **READY**.
+The final TeraBox transport hardening specifically verifies provider-safe part planning around the 4 MiB multipart boundary and rejects a signed layout that would leave an undersized final fragment.
 
-Live production `/api/readiness` for that verified runtime confirms:
+Main `069878312a9409148dde34fad031b4ff5c7fee6d` deployed successfully as `dpl_9uUDaEdaNxXkGDPGtRYUkY2bkGzb`, state **READY**.
+
+Live production `/api/readiness` confirms:
 
 - HTTP 200;
 - `environment: true`;
 - `database: true`;
 - `migrations: true`;
 - `encryptionSchema: "v1"`;
-- `providerSchema: "v2"`.
+- `providerSchema: "v2"`;
+- `googleQuotaSchema: "v2"`.
 
-Earlier production verification also confirmed Google OAuth start parameters, exact callback, offline access, PKCE S256, security headers and migrations through the provider-object foundation.
-
-## Current deployment blocker
-
-GitHub/Vercel status for current main `a74596ae8a12c4c9025914112807162e9af17cce` is failure with description: `Deployment rate limited — retry in 24 hours.` This is a hosting-account build-rate limit, not a repository CI failure. Do not bypass it with unsupported deployment tricks and do not treat READY preview builds as production verification.
+Production security headers remain present. Provider activation gates remain fail-closed unless explicitly configured after provider-specific verification.
 
 ## Encryption trust model
 
@@ -70,27 +67,24 @@ Do **not** call the current design zero-knowledge or provider-only E2EE. Meshly'
 
 ## NOT yet proven with real production credentials
 
-- successful production deployment of current main and migration `0008`;
-- live readiness `googleQuotaSchema: "v2"`;
-- user-completed Google existing-file consent + successful initial index;
-- exact browser-visible Google account/Drive quota comparison against the provider;
+- user-completed Google existing-file consent + successful initial index of pre-existing files;
+- exact browser-visible Google total/Drive/trash/free comparison against the provider;
 - real encrypted Google Auto-account and explicitly selected-account upload/download SHA-256 round trips;
 - provider-side inspection of a real Google managed ciphertext object;
-- real Dropbox OAuth/quota/browse plus encrypted managed upload/download SHA-256 equality;
-- Dropbox interrupted/retried transfer, integrity, permanent delete and recovery restore rehearsal;
-- TeraBox auth/quota/browse plus encrypted managed transfer live verification;
-- large-file TeraBox transfer worker;
+- real Dropbox OAuth/quota/browse plus encrypted managed upload/download SHA-256 equality and retry/integrity/delete/recovery rehearsal;
+- real TeraBox auth/quota/browse plus encrypted managed small-file transfer verification;
+- deployed TeraBox large-file worker health/connectivity and real multipart encrypted round trip, fragment-size verification, download/hash/integrity/abort cleanup;
 - MEGA official-SDK worker integration;
 - final sharing, cron and desktop/mobile authenticated smoke tests.
 
 ## Next actions — do these in order
 
-1. After the Vercel build-rate window clears, retry/redeploy current main `a74596ae8a12c4c9025914112807162e9af17cce`; keep Dropbox/TeraBox managed-upload gates off.
-2. Verify the production deployment is READY and `/api/readiness` returns HTTP 200 with `googleQuotaSchema: "v2"`, `providerSchema: "v2"`, migrations true and encryption schema v1.
-3. In the authenticated production browser, run **Show existing files**, verify the pre-existing Google Drive index, and compare refreshed per-account total/Drive/trash values with Google.
-4. Run encrypted Google Auto + explicit-account upload/download SHA-256 tests and inspect the opaque provider object.
-5. Configure Dropbox/TeraBox application credentials only outside chat/repository and run provider-specific live transfer verification before enabling either managed-upload gate.
-6. Implement a dedicated large-file TeraBox transfer worker and an official-SDK-backed MEGA worker before presenting those capabilities as active.
+1. In the authenticated production browser, use **Show existing files** for the connected Google account, complete the broader read-only consent, run the initial index and confirm pre-existing Google Drive files appear.
+2. Refresh the account and compare Meshly's total Google usage, Drive usage, Drive trash and free space against Google for the same account.
+3. Run encrypted Google Auto + explicit-account upload/download SHA-256 round trips and inspect the opaque provider object.
+4. Configure Dropbox/TeraBox application credentials only outside chat/repository and run provider-specific auth/quota/browse/transfer/integrity/delete/recovery tests before enabling either managed-upload gate.
+5. Deploy the dedicated TeraBox worker separately with its independent secrets, keep `TERABOX_LARGE_WORKER_ENABLED=false`, verify worker health/internal connectivity and a real multi-part encrypted provider round trip, then enable only after all checks pass.
+6. Implement the official-SDK-backed MEGA worker before presenting MEGA managed transfers as active.
 7. Advance to `production_verified` only after all required live tests genuinely pass.
 
 ## Invariants
@@ -101,6 +95,7 @@ Do **not** call the current design zero-knowledge or provider-only E2EE. Meshly'
 - No logical managed file becomes `ready` before its remote encrypted object verifies.
 - Provider connection/browsing does not equal encrypted managed-upload support.
 - Provider upload gates remain off until provider-specific live verification passes.
+- TeraBox encryption frames and provider transport fragments are independent; multipart provider fragments must satisfy provider size rules.
 - Production migrations are transactional, checksum-verified and production-only during Vercel builds.
 - Preview/local/CI builds do not mutate the production database.
 - Never place production secrets, provider tokens, OAuth codes, cookies or plaintext file keys in repository/checkpoint files/issues/screenshots/chat.
