@@ -1,5 +1,15 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+export const TERABOX_MULTIPART_MIN_PART_BYTES = 4 * 1024 * 1024;
+export const TERABOX_WORKER_TARGET_PART_BYTES = 8 * 1024 * 1024;
+const TERABOX_WORKER_MAX_PARTS = 10_000;
+
+export type TeraBoxWorkerPartPlan = {
+  frames: number;
+  maxPartBytes: number;
+  lastPartBytes: number;
+};
+
 export type TeraBoxWorkerTokenPayload = {
   v: 1;
   objectId: string;
@@ -16,6 +26,24 @@ type WorkerConfig = {
   signingKey: string;
   internalSecret: string;
 };
+
+export function planTeraBoxWorkerParts(physicalSize: number): TeraBoxWorkerPartPlan {
+  if (!Number.isSafeInteger(physicalSize) || physicalSize <= 0) throw new Error("Invalid TeraBox worker ciphertext size");
+
+  let frames = Math.max(1, Math.ceil(physicalSize / TERABOX_WORKER_TARGET_PART_BYTES));
+  if (frames > TERABOX_WORKER_MAX_PARTS) throw new Error("TeraBox worker upload exceeds the transport part safety limit");
+
+  while (frames > 1) {
+    const maxPartBytes = Math.ceil(physicalSize / frames);
+    const lastPartBytes = physicalSize - maxPartBytes * (frames - 1);
+    if (maxPartBytes > TERABOX_MULTIPART_MIN_PART_BYTES && lastPartBytes > TERABOX_MULTIPART_MIN_PART_BYTES) {
+      return { frames, maxPartBytes, lastPartBytes };
+    }
+    frames--;
+  }
+
+  return { frames: 1, maxPartBytes: physicalSize, lastPartBytes: physicalSize };
+}
 
 function workerConfig(): WorkerConfig {
   const url = process.env.TERABOX_WORKER_URL?.trim().replace(/\/$/, "");
@@ -75,10 +103,15 @@ export function verifyTeraBoxWorkerToken(token: string, nowSeconds = Math.floor(
     typeof payload.fileId !== "string" || !payload.fileId ||
     typeof payload.userId !== "string" || !payload.userId ||
     !Number.isSafeInteger(payload.physicalSize) || Number(payload.physicalSize) <= 0 ||
-    !Number.isSafeInteger(payload.frames) || Number(payload.frames) <= 0 ||
+    !Number.isSafeInteger(payload.frames) || Number(payload.frames) <= 0 || Number(payload.frames) > TERABOX_WORKER_MAX_PARTS ||
     !Number.isSafeInteger(payload.maxPartBytes) || Number(payload.maxPartBytes) <= 0 ||
     !Number.isSafeInteger(payload.exp) || Number(payload.exp) <= nowSeconds
   ) throw new Error("Invalid or expired TeraBox worker token payload");
+
+  const planned = planTeraBoxWorkerParts(Number(payload.physicalSize));
+  if (planned.frames !== payload.frames || planned.maxPartBytes !== payload.maxPartBytes) {
+    throw new Error("Invalid TeraBox worker transport layout");
+  }
   return payload as TeraBoxWorkerTokenPayload;
 }
 
