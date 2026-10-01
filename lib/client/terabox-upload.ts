@@ -5,6 +5,8 @@ import { decodeBase64Url, encryptManagedFrame, importManagedFileKey } from "@/li
 import { frameCount, frameLayout } from "@/lib/storage/encryption-format";
 import type { ProviderUploadProgress } from "@/lib/client/provider-upload";
 
+const TERABOX_MULTIPART_MIN_PART_BYTES = 4 * 1024 * 1024;
+
 type Plan = {
   fileId: string;
   objectId: string;
@@ -46,18 +48,18 @@ async function abortWorker(plan: Plan) {
   }).catch(() => undefined);
 }
 
-async function uploadWorkerPart(plan: Plan, frameIndex: number, encrypted: Uint8Array) {
+async function uploadWorkerPart(plan: Plan, partIndex: number, encryptedPart: Uint8Array) {
   if (!plan.worker) throw new Error("TeraBox worker plan is missing");
-  const response = await fetch(`${plan.worker.url.replace(/\/$/, "")}/v1/terabox/${encodeURIComponent(plan.objectId)}/parts/${frameIndex}`, {
+  const response = await fetch(`${plan.worker.url.replace(/\/$/, "")}/v1/terabox/${encodeURIComponent(plan.objectId)}/parts/${partIndex}`, {
     method: "PUT",
     headers: {
       authorization: `Bearer ${plan.worker.token}`,
       "content-type": "application/octet-stream",
     },
-    body: body(encrypted),
+    body: body(encryptedPart),
   });
   const result = await response.json().catch(() => ({})) as { error?: string };
-  if (!response.ok) throw new Error(result.error ?? `TeraBox worker rejected encrypted frame ${frameIndex}`);
+  if (!response.ok) throw new Error(result.error ?? `TeraBox worker rejected encrypted transport part ${partIndex}`);
 }
 
 async function commitWorker(plan: Plan, ciphertextSha256: string) {
@@ -73,6 +75,31 @@ async function commitWorker(plan: Plan, ciphertextSha256: string) {
   const result = await response.json().catch(() => ({})) as { ok?: boolean; uploadedBytes?: number; error?: string };
   if (!response.ok || !result.ok || result.uploadedBytes !== plan.encryption.physicalSize) {
     throw new Error(result.error ?? "TeraBox worker failed to finalize the encrypted object");
+  }
+}
+
+function validateWorkerPlan(plan: Plan) {
+  if (!plan.worker) throw new Error("TeraBox worker plan is missing");
+  if (!Number.isSafeInteger(plan.worker.frames) || plan.worker.frames <= 0 || plan.worker.frames > 10_000) {
+    throw new Error("Meshly returned an invalid TeraBox worker part count");
+  }
+  if (!Number.isSafeInteger(plan.worker.maxPartBytes) || plan.worker.maxPartBytes <= 0) {
+    throw new Error("Meshly returned an invalid TeraBox worker part size");
+  }
+  if (Math.ceil(plan.encryption.physicalSize / plan.worker.maxPartBytes) !== plan.worker.frames) {
+    throw new Error("Meshly returned an inconsistent TeraBox worker transport layout");
+  }
+  const lastPartBytes = plan.encryption.physicalSize - plan.worker.maxPartBytes * (plan.worker.frames - 1);
+  if (lastPartBytes <= 0 || lastPartBytes > plan.worker.maxPartBytes) {
+    throw new Error("Meshly returned an invalid TeraBox worker final part size");
+  }
+  if (plan.worker.frames > 1 && (plan.worker.maxPartBytes <= TERABOX_MULTIPART_MIN_PART_BYTES || lastPartBytes <= TERABOX_MULTIPART_MIN_PART_BYTES)) {
+    throw new Error("Meshly returned TeraBox multipart fragments that are too small");
+  }
+
+  const workerUrl = new URL(plan.worker.url);
+  if (workerUrl.protocol !== "https:" && !["localhost", "127.0.0.1", "::1"].includes(workerUrl.hostname)) {
+    throw new Error("Meshly returned an insecure TeraBox worker URL");
   }
 }
 
@@ -95,19 +122,13 @@ export async function uploadMeshlyTeraBoxFile(
     throw new Error("Meshly returned an invalid TeraBox encryption plan");
   }
 
-  const frames = frameCount(file.size, plan.encryption.framePlainBytes);
+  const encryptionFrames = frameCount(file.size, plan.encryption.framePlainBytes);
   if (plan.transport === "serverless") {
-    if (frames !== 1 || plan.encryption.physicalSize > plan.maxCiphertextBytes || plan.worker) {
+    if (encryptionFrames !== 1 || plan.encryption.physicalSize > plan.maxCiphertextBytes || plan.worker) {
       throw new Error("Meshly returned an invalid TeraBox serverless plan");
     }
   } else {
-    if (!plan.worker || plan.worker.frames !== frames || plan.worker.maxPartBytes !== plan.encryption.framePlainBytes + plan.encryption.tagBytes) {
-      throw new Error("Meshly returned an invalid TeraBox worker plan");
-    }
-    const workerUrl = new URL(plan.worker.url);
-    if (workerUrl.protocol !== "https:" && !["localhost", "127.0.0.1", "::1"].includes(workerUrl.hostname)) {
-      throw new Error("Meshly returned an insecure TeraBox worker URL");
-    }
+    validateWorkerPlan(plan);
   }
 
   const plaintextHash = await createSHA256();
@@ -118,19 +139,46 @@ export async function uploadMeshlyTeraBoxFile(
   try {
     const key = await importManagedFileKey(plan.encryption.key);
     const noncePrefix = decodeBase64Url(plan.encryption.noncePrefix);
+    let workerPending = new Uint8Array(0);
+    let workerPartIndex = 0;
+    let workerUploadedBytes = 0;
 
-    for (let frameIndex = 0; frameIndex < frames; frameIndex += 1) {
+    const feedWorkerCiphertext = async (encrypted: Uint8Array) => {
+      if (plan.transport !== "worker" || !plan.worker) return;
+      const merged = new Uint8Array(workerPending.byteLength + encrypted.byteLength);
+      merged.set(workerPending, 0);
+      merged.set(encrypted, workerPending.byteLength);
+      workerPending = merged;
+
+      while (workerPartIndex < plan.worker.frames) {
+        const expectedPartBytes = workerPartIndex < plan.worker.frames - 1
+          ? plan.worker.maxPartBytes
+          : plan.encryption.physicalSize - plan.worker.maxPartBytes * (plan.worker.frames - 1);
+        if (workerPending.byteLength < expectedPartBytes) break;
+
+        const part = workerPending.slice(0, expectedPartBytes);
+        workerPending = workerPending.slice(expectedPartBytes);
+        await uploadWorkerPart(plan, workerPartIndex, part);
+        workerUploadedBytes += part.byteLength;
+        workerPartIndex++;
+        onProgress?.({
+          phase: "uploading",
+          percent: Math.min(85, Math.round(30 + (workerUploadedBytes / plan.encryption.physicalSize) * 55)),
+        });
+      }
+    };
+
+    for (let frameIndex = 0; frameIndex < encryptionFrames; frameIndex += 1) {
       const layout = frameLayout(file.size, frameIndex, plan.encryption.framePlainBytes, plan.encryption.tagBytes);
       const plainBuffer = await file.slice(layout.plainOffset, layout.plainOffset + layout.plainSize).arrayBuffer();
       plaintextHash.update(new Uint8Array(plainBuffer));
-      onProgress?.({ phase: "encrypting", percent: Math.round(10 + (frameIndex / Math.max(1, frames)) * 20) });
+      onProgress?.({ phase: "encrypting", percent: Math.round(10 + (frameIndex / Math.max(1, encryptionFrames)) * 20) });
       const encrypted = await encryptManagedFrame({ key, noncePrefix, fileId: plan.fileId, fileSize: file.size, frameIndex, plaintext: plainBuffer });
       if (encrypted.byteLength !== layout.cipherSize) throw new Error(`Encrypted TeraBox frame ${frameIndex} size mismatch`);
       ciphertextHash.update(encrypted);
 
       if (plan.transport === "worker") {
-        await uploadWorkerPart(plan, frameIndex, encrypted);
-        onProgress?.({ phase: "uploading", percent: Math.round(30 + ((frameIndex + 1) / frames) * 55) });
+        await feedWorkerCiphertext(encrypted);
       } else {
         const upload = await fetch(`/api/provider-uploads/terabox/${encodeURIComponent(plan.objectId)}/part`, {
           method: "PUT",
@@ -140,6 +188,12 @@ export async function uploadMeshlyTeraBoxFile(
         const uploadResult = await upload.json().catch(() => ({})) as { error?: string };
         if (!upload.ok) throw new Error(uploadResult.error ?? "TeraBox encrypted-object upload failed");
         onProgress?.({ phase: "uploading", percent: 85 });
+      }
+    }
+
+    if (plan.transport === "worker" && plan.worker) {
+      if (workerPending.byteLength !== 0 || workerPartIndex !== plan.worker.frames || workerUploadedBytes !== plan.encryption.physicalSize) {
+        throw new Error("TeraBox worker transport packing did not cover the complete encrypted object");
       }
     }
 
