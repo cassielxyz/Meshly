@@ -4,14 +4,16 @@
 
 ## Do this next
 
-PR #14 merged successfully into main as `a74596ae8a12c4c9025914112807162e9af17cce` after exact-head CI run `36344842001` passed install, checkpoint validation, audit, lint, typecheck, tests and production build.
+PR #16 passed the exact-head full CI gate, was squash-merged to main as `069878312a9409148dde34fad031b4ff5c7fee6d`, and deployed successfully as production deployment `dpl_9uUDaEdaNxXkGDPGtRYUkY2bkGzb`.
 
-Vercel did **not** deploy that main commit because the account hit the build-rate limit. GitHub status reports `Deployment rate limited — retry in 24 hours.` The last verified production runtime is still main `9018491a83d9663dc09b32c9889c3133cac15e01` / deployment `dpl_4yceJJbueyJS978P2sviWdPkQ2By`.
+Live `https://meshly.cassielae.me/api/readiness` is HTTP 200 with environment/database/migrations true, `encryptionSchema: "v1"`, `providerSchema: "v2"`, and `googleQuotaSchema: "v2"`.
 
-1. After the Vercel rate-limit window clears, retry/redeploy current main without enabling `DROPBOX_MANAGED_UPLOADS_ENABLED` or `TERABOX_MANAGED_UPLOADS_ENABLED`.
-2. Verify the deployment becomes READY and `/api/readiness` reports `googleQuotaSchema: "v2"`, `providerSchema: "v2"`, migrations true and encryption schema v1.
-3. Then use **Show existing files** in the authenticated browser, verify pre-existing Google Drive files are indexed, and compare refreshed total/Drive/trash/free values with Google.
-4. Run encrypted Google Auto-account and selected-account SHA-256 round trips.
-5. Configure Dropbox/TeraBox provider application credentials only outside chat/repository and run their real provider-specific verification before enabling either managed-upload gate.
+The next step is real authenticated Google verification:
 
-Do not paste passwords, OAuth codes, cookies, provider tokens or secrets into chat.
+1. Open Meshly production and go to the connected Google account.
+2. Choose **Show existing files** for the account whose pre-existing Drive files are missing.
+3. Complete Google's read-only Drive consent and let Meshly run the initial index.
+4. Confirm pre-existing files appear, then refresh live account data and compare total Google usage, Drive usage, Drive trash and free space with Google for the same account.
+5. After that, run encrypted Google Auto-account and selected-account SHA-256 round trips.
+
+Dropbox/TeraBox managed-upload gates and the TeraBox large-worker gate must stay off until their real provider-specific verification passes. Do not paste passwords, OAuth codes, cookies, provider tokens or secrets into chat.
