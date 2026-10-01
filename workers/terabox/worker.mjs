@@ -11,6 +11,7 @@ const SIGNING_KEY = requiredSecret("TERABOX_WORKER_SIGNING_KEY");
 const INTERNAL_SECRET = requiredSecret("TERABOX_WORKER_INTERNAL_SECRET");
 const PROVIDER_TIMEOUT_MS = positiveInt(process.env.TERABOX_PROVIDER_TIMEOUT_MS, 120_000);
 const INTERNAL_TIMEOUT_MS = positiveInt(process.env.MESHLY_INTERNAL_TIMEOUT_MS, 30_000);
+const TERABOX_MULTIPART_MIN_PART_BYTES = 4 * 1024 * 1024;
 const OBJECT_ID = /^[A-Za-z0-9_-]{6,128}$/;
 const HEX_64 = /^[a-f0-9]{64}$/i;
 
@@ -84,6 +85,13 @@ function verifyWorkerToken(token, expectedObjectId) {
   ) throw new HttpError(401, "invalid_or_expired_worker_token");
   const expectedFrames = Math.ceil(payload.physicalSize / payload.maxPartBytes);
   if (expectedFrames !== payload.frames) throw new HttpError(401, "invalid_worker_frame_binding");
+  const lastPartBytes = payload.physicalSize - payload.maxPartBytes * (payload.frames - 1);
+  if (!Number.isSafeInteger(lastPartBytes) || lastPartBytes <= 0 || lastPartBytes > payload.maxPartBytes) {
+    throw new HttpError(401, "invalid_worker_part_layout");
+  }
+  if (payload.frames > 1 && (payload.maxPartBytes <= TERABOX_MULTIPART_MIN_PART_BYTES || lastPartBytes <= TERABOX_MULTIPART_MIN_PART_BYTES)) {
+    throw new HttpError(401, "unsafe_terabox_multipart_layout");
+  }
   return payload;
 }
 
